@@ -200,7 +200,6 @@ class Jira {
             categoryId?: number
           }[] = []
 
-          console.log('\n')
           console.log(`Current issue status is: ${chalk.green.bold(currentIssueStatusName)}`)
           console.log('\n')
 

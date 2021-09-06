@@ -193,29 +193,28 @@ export default class Create extends Command {
         commitConfig.message,
       )
 
-      let hasErrorCommitting = false
       const isUsingAnExistingTicket = Boolean(issueBasedOnName.key)
 
-      exec(`git commit -m "${commitMessage}"`, (error, stdout, stderr) => {
+      exec(`git commit -m "${commitMessage}"`, async (error, stdout, stderr) => {
         if (error) {
           this.log(`${chalk.red(error.message)}`)
-          hasErrorCommitting = true
           return
         }
+
         if (stderr) {
           this.log(`${chalk.red(stderr)}`)
-          hasErrorCommitting = true
           return
         }
 
-        this.log(chalk.green(`Commit successfully created with name: ${stdout} \n`))
+        this.log(chalk.green(`\n\nCommit successfully created\n`))
+        this.log(chalk.green(`\n${stdout}\n`))
+
+        await sleep(50)
+
+        if (isUsingAnExistingTicket) {
+          this.handleTicketAfterCommit(issueBasedOnName, projectID)
+        }
       })
-
-      await sleep(50)
-
-      if (!hasErrorCommitting && isUsingAnExistingTicket) {
-        this.handleTicketAfterCommit(issueBasedOnName, projectID)
-      }
     }
   }
 }
