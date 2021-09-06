@@ -164,6 +164,8 @@ class Jira {
     return new Promise(async (resolve, reject) => {
       if (this.client) {
         try {
+          console.log('\n')
+          cli.action.start('Fetching info about current status')
           const issueTypes = await this.client.projects.getAllStatuses({ projectIdOrKey: projectID })
 
           const currentIssue = await this.client.issues.getIssue({ issueIdOrKey: id.toString() })
@@ -190,6 +192,9 @@ class Jira {
           const availableNewStatuses = statuses
             .map(status => status.name!)
             .filter(status => status !== currentIssueStatusName)
+
+          cli.action.stop()
+          console.log('\n')
 
           const newStatus = await moveIssueToStatus(availableNewStatuses)
 
