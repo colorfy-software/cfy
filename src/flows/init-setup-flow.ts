@@ -4,8 +4,8 @@ import { IssuePickerSuggestions, Project } from 'jira.js/out/version2/models'
 
 import { validateEmail } from '../utils/validation'
 
-export const initProjectQuestion = async (): Promise<{ value: boolean }> => {
-  console.log(chalk.red("\nSeems like you don't have cfy set up\n"))
+export const initAuthSetupQuestion = async (): Promise<{ value: boolean }> => {
+  console.log(chalk.red("\nSeems like you don't have cfy connected to Jira\n"))
 
   const output = await prompt([
     {
@@ -19,12 +19,28 @@ export const initProjectQuestion = async (): Promise<{ value: boolean }> => {
   return output
 }
 
+export const initProjectSetupQuestion = async (): Promise<{ value: boolean }> => {
+  console.log(chalk.red("\nSeems like you don't have cfy set up for the current project\n"))
+
+  const output = await prompt([
+    {
+      type: 'confirm',
+      name: 'value',
+      message: 'Do you want to setup cfy for the current project?',
+      default: true,
+    },
+  ])
+
+  return output
+}
+
 export const jiraAuthenticationQuestions = async (): Promise<{
   domain: string
   email: string
   token: string
 }> => {
   console.log(chalk.yellow('\nWe need to get some data from you to setup connection with Jira\n'))
+
   const output = await prompt([
     {
       type: 'input',
@@ -55,7 +71,9 @@ export const jiraAuthenticationQuestions = async (): Promise<{
     {
       type: 'input',
       name: 'token',
-      message: 'Enter your JIRA Account API Token. (Generate it in your Atlassian account settings)',
+      message: `Enter your JIRA Account API Token. (Generate it at url: ${chalk.blue.bold(
+        'https://id.atlassian.com/manage-profile/security/api-tokens',
+      )})`,
       validate(value) {
         if (value.length === 0) {
           return 'Sorry, you need to enter something here'
@@ -68,20 +86,25 @@ export const jiraAuthenticationQuestions = async (): Promise<{
   return output
 }
 
-export const projectSelectionQuestion = async (projects: Project[]): Promise<{ projectName: string; JQL: string }> => {
+export const projectSelectionQuestion = async (projects: Project[]): Promise<{ projectName: string }> => {
   const output = await prompt([
     {
       type: 'search-list',
       name: 'projectName',
-      message: 'Choose which project you want to set as default. That project key will be used in the commit message',
+      message: 'Choose which project you want to set as default. That project will be used to fetch tickets',
       choices: projects.map(project => `${project.key} - ${project.name}`),
     },
+  ])
+
+  return output
+}
+
+export const JQLQuestion = async (): Promise<{ JQL: string }> => {
+  const output = await prompt([
     {
       type: 'input',
       name: 'JQL',
-      message:
-        // eslint-disable-next-line no-template-curly-in-string
-        'For filtering out projects that only you care about, please go to JIRA advanced search (https://colorfy.atlassian.net/issues/?jql=order+by+created+DESC), choose basic instead of JQL, set all of the filtering to which tickets you want to see. Switch back to JQL and copy the output here. It should look something like: \n "project = LOVE AND status in (Backlog, "In Progress", "On Hold", "Selected for Development", "To Do") AND assignee in (5b0583f9a06f955a6694695f)".\nPaste ONLY this part in here: "status in (Backlog, "In Progress", "On Hold", "Selected for Development", "To Do")"',
+      message: 'JQL for tickets',
       validate(value) {
         if (value.length === 0) {
           return 'Sorry, you need to enter something here'
