@@ -1,3 +1,4 @@
+/* eslint-disable no-implicit-coercion */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable no-negated-condition */
 import cli from 'cli-ux'
@@ -19,6 +20,8 @@ import {
 
 import { AuthConfigType } from '../types/types'
 import sleep from '../utils/sleep'
+import { SuggestedIssue } from 'jira.js/out/version2/models/suggestedIssue'
+import { IssueBean } from 'jira.js/out/version2/models'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 inquirer.registerPrompt('search-list', require('inquirer-search-list'))
@@ -87,6 +90,33 @@ export default class Create extends Command {
     this.run()
   }
 
+  async handleTicketAfterCommit(issue: SuggestedIssue | IssueBean, projectID: string): Promise<void> {
+    console.log('\n')
+    const currentIssue = await core.jira.getIssueBasedOnIdOrKey(issue.key!)
+    const whatNext = await whatToDoWithIssue()
+
+    if (whatNext.next === 1) {
+      const ticketKey = currentIssue.key!
+      const comment = (await addCommentToIssueInput()).comment
+      console.log('\n')
+      cli.action.start('Adding comment to the ticket')
+      await core.jira.addCommentToIssue(ticketKey, comment)
+      cli.action.stop()
+      console.log('\n')
+
+      sleep(50)
+      this.handleTicketAfterCommit(currentIssue, projectID)
+    }
+
+    if (whatNext.next === 2) {
+      // Move ticket to new column
+      await core.jira.moveIssueToNewStatus(currentIssue.id!, projectID)
+
+      sleep(50)
+      this.handleTicketAfterCommit(currentIssue, projectID)
+    }
+  }
+
   async run(): Promise<void> {
     const authConfig = core.fs.getAuthConfig()
     const projectConfig = core.fs.getProjectConfig()
@@ -149,12 +179,15 @@ export default class Create extends Command {
       const jiraProjects = await core.jira.getProjectsForAccount()
       const jiraProject = jiraProjects.filter(project => project.key === projectKey)[0]
       const projectID = jiraProject.id!
+
       const tickets = await core.jira.getTicketsForCurrentProject(projectID, projectConfig.JQL)
       cli.action.stop()
       console.log('\n')
 
       const ticketToUse = await ticketSelectionQuestion(tickets, jiraProject.key!)
-      const ticketAnswer = ticketToUse.ticket.ticketName
+      const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
+
+      const ticketAnswer = ticketToUse.ticket
       const commitConfig = await commitTypeQuestion(ticketAnswer.split(' - ')[1])
 
       const commitMessage = constructCommitMessage(
@@ -165,7 +198,7 @@ export default class Create extends Command {
       )
 
       let hasErrorCommitting = false
-      const isUsingAnExistingTicket = Boolean(ticketToUse.ticket.key)
+      const isUsingAnExistingTicket = Boolean(issueBasedOnName.key)
 
       exec(`git commit -m "${commitMessage}"`, (error, stdout, stderr) => {
         if (error) {
@@ -184,19 +217,8 @@ export default class Create extends Command {
 
       await sleep(50)
 
-      if (!hasErrorCommitting || isUsingAnExistingTicket) {
-        await sleep(50)
-        const whatNext = await whatToDoWithIssue()
-
-        if (whatNext.next === 1) {
-          const ticketKey = ticketToUse.ticket.key!
-          const comment = (await addCommentToIssueInput()).comment
-          console.log('\n')
-          cli.action.start('Adding comment to the ticket')
-          await core.jira.addCommentToIssue(ticketKey, comment)
-          cli.action.stop()
-          console.log('\n')
-        }
+      if (!hasErrorCommitting && isUsingAnExistingTicket) {
+        this.handleTicketAfterCommit(issueBasedOnName, projectID)
       }
     }
   }

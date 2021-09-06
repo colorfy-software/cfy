@@ -88,10 +88,27 @@ export const whatToDoWithIssue = async (): Promise<{ next: number }> => {
           value: 1,
         },
         {
-          name: '2. Exit',
+          name: '2. Move ticket to another status',
           value: 2,
         },
+        {
+          name: '3. Exit',
+          value: 3,
+        },
       ],
+    },
+  ])
+
+  return output
+}
+
+export const moveIssueToStatus = async (statuses: string[]): Promise<{ newStatus: string }> => {
+  const output = await prompt([
+    {
+      type: 'search-list',
+      name: 'newStatus',
+      message: 'Which status do you want to move the ticket to?',
+      choices: statuses,
     },
   ])
 

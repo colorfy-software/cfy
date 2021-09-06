@@ -120,26 +120,20 @@ export const JQLQuestion = async (): Promise<{ JQL: string }> => {
 export const ticketSelectionQuestion = async (
   issues: IssuePickerSuggestions,
   projectKey: string,
-): Promise<{ ticket: SuggestedIssue & { ticketName: string } }> => {
+): Promise<{ ticket: string }> => {
   const sections = issues.sections && issues.sections[0]
   const availableIssues =
     (sections
       ? sections.issues?.map(issue => {
           return {
             name: `${issue.key} - ${issue.summary}`,
-            value: {
-              ...issue,
-              ticketName: `${issue.key} - ${issue.summary}`,
-            },
           }
         })
       : []) || []
+
   const choices = [
     {
       name: `${projectKey} - !! Move on without a ticket number !!`,
-      value: {
-        ticketName: `${projectKey} - !! Move on without a ticket number !!`,
-      },
     },
     ...availableIssues,
   ]
