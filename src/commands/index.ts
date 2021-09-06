@@ -57,26 +57,26 @@ export default class Create extends Command {
     const availableStatuses = await core.jira.getAllStatusesForProject(jiraProject.id!)
     const selectedStatuses = await getStatusesForProject(availableStatuses)
 
-    let string = 'status in ('
-
-    selectedStatuses.statusSelections.forEach((status, index) => {
-      if (status.split(' ').length > 1) {
-        string += `"${status}"`
+    const JQLString = selectedStatuses.statusSelections.reduce((accumulator, currentValue, index, array) => {
+      if (currentValue.split(' ').length > 1) {
+        accumulator += `"${currentValue}"`
       } else {
-        string += `${status}`
+        accumulator += `${currentValue}`
       }
 
-      if (selectedStatuses.statusSelections.length - 1 === index) {
-        string += ')'
+      if (array.length - 1 === index) {
+        accumulator += ')'
       } else {
-        string += `, `
+        accumulator += `, `
       }
-    })
+
+      return accumulator
+    }, 'status in (')
 
     core.fs.createAndStoreConfigFile({
       projectId: jiraProject.id!,
       projectKey: jiraProject.key!,
-      JQL: string,
+      JQL: JQLString,
     })
 
     await sleep(500)
