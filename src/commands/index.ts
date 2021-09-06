@@ -91,7 +91,6 @@ export default class Create extends Command {
   }
 
   async handleTicketAfterCommit(issue: SuggestedIssue | IssueBean, projectID: string): Promise<void> {
-    console.log('\n')
     const currentIssue = await core.jira.getIssueBasedOnIdOrKey(issue.key!)
     const whatNext = await whatToDoWithIssue()
 
