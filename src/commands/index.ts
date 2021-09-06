@@ -165,6 +165,7 @@ export default class Create extends Command {
       )
 
       let hasErrorCommitting = false
+      const isUsingAnExistingTicket = Boolean(ticketToUse.ticket.key)
 
       exec(`git commit -m "${commitMessage}"`, (error, stdout, stderr) => {
         if (error) {
@@ -183,7 +184,7 @@ export default class Create extends Command {
 
       await sleep(50)
 
-      if (!hasErrorCommitting) {
+      if (!hasErrorCommitting || isUsingAnExistingTicket) {
         await sleep(50)
         const whatNext = await whatToDoWithIssue()
 
