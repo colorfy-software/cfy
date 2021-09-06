@@ -117,6 +117,19 @@ export const JQLQuestion = async (): Promise<{ JQL: string }> => {
   return output
 }
 
+export const getStatusesForProject = async (statuses: string[]): Promise<{ statusSelections: string[] }> => {
+  const output = await prompt([
+    {
+      type: 'checkbox',
+      name: 'statusSelections',
+      message: 'Statuses for tickets',
+      choices: statuses,
+    },
+  ])
+
+  return output
+}
+
 export const ticketSelectionQuestion = async (
   issues: IssuePickerSuggestions,
   projectKey: string,

@@ -6,11 +6,14 @@ import chalk from 'chalk'
 import { exec } from 'child_process'
 import inquirer = require('inquirer')
 import { Command } from '@oclif/command'
+import { IssueBean } from 'jira.js/out/version2/models'
+import { SuggestedIssue } from 'jira.js/out/version2/models/suggestedIssue'
 
 import core from '../core/core'
+import sleep from '../utils/sleep'
 import { addCommentToIssueInput, commitTypeQuestion, whatToDoWithIssue } from '../flows/commit-flow'
 import {
-  JQLQuestion,
+  getStatusesForProject,
   initAuthSetupQuestion,
   ticketSelectionQuestion,
   initProjectSetupQuestion,
@@ -19,9 +22,6 @@ import {
 } from '../flows/init-setup-flow'
 
 import { AuthConfigType } from '../types/types'
-import sleep from '../utils/sleep'
-import { SuggestedIssue } from 'jira.js/out/version2/models/suggestedIssue'
-import { IssueBean } from 'jira.js/out/version2/models'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 inquirer.registerPrompt('search-list', require('inquirer-search-list'))
@@ -50,40 +50,33 @@ export default class Create extends Command {
 
     const projectSettings = await projectSelectionQuestion(jiraProjects)
 
-    console.log(chalk.yellow("\nNow it's going to be a bit more complicated\n"))
-    console.log('To filter out relevant tickets from the project, you need to create a JQL\n')
+    console.log(chalk.yellow('\nNow we need to filter out correct tickets from all of the statuses\n'))
 
-    console.log(
-      `1. Please navigate to: ${chalk.blue.bold('https://colorfy.atlassian.net/issues/?jql=order+by+created+DESC')}`,
-    )
-
-    console.log(
-      `2. Choose ${chalk.yellow.bold(
-        "'Switch to basic'",
-      )} from the right side, and select all relevant options for you (e.g. Project, Status, and assignee)'`,
-    )
-
-    console.log(
-      `3. After that switch back to JQL from the right side, and you should see something like: ${chalk.yellow.bold(
-        'project = PROJECT_NAME AND status in (Backlog, "In Progress", "On Hold", "Selected for Development", "To Do") AND assignee in (USER_ID) order by created DESC',
-      )}`,
-    )
-
-    console.log(
-      `4. COPY ONLY THE FOLLOWING PART IN THE FOLLOWING INPUT: ${chalk.green.bold(
-        'status in (Backlog, "In Progress", "On Hold", "Selected for Development", "To Do")',
-      )}\n`,
-    )
-
-    const JQLForTickets = await JQLQuestion()
     const projectNameToUse = projectSettings.projectName
-
-    const projectJQLToUse = JQLForTickets.JQL
     const jiraProject = jiraProjects.filter(project => `${project.key} - ${project.name}` === projectNameToUse)[0]
+    const availableStatuses = await core.jira.getAllStatusesForProject(jiraProject.id!)
+    const selectedStatuses = await getStatusesForProject(availableStatuses)
+
+    let string = 'status in ('
+
+    selectedStatuses.statusSelections.forEach((status, index) => {
+      if (status.split(' ').length > 1) {
+        string += `"${status}"`
+      } else {
+        string += `${status}`
+      }
+
+      if (selectedStatuses.statusSelections.length - 1 === index) {
+        string += ')'
+      } else {
+        string += `, `
+      }
+    })
 
     core.fs.createAndStoreConfigFile({
+      projectId: jiraProject.id!,
       projectKey: jiraProject.key!,
-      JQL: projectJQLToUse,
+      JQL: string,
     })
 
     await sleep(500)

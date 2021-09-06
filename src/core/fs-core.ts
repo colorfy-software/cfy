@@ -91,10 +91,19 @@ class Fs {
     )
   }
 
-  createAndStoreConfigFile = ({ projectKey, JQL }: { projectKey: string; JQL: string }): void => {
+  createAndStoreConfigFile = ({
+    projectId,
+    projectKey,
+    JQL,
+  }: {
+    projectId: string
+    projectKey: string
+    JQL: string
+  }): void => {
     const configFilePath = this.getProjectConfigFilePath()
 
     this.projectConfig = {
+      project_id: projectId,
       project_key: projectKey,
       JQL,
     }
@@ -102,6 +111,7 @@ class Fs {
     writeFile(
       configFilePath,
       JSON.stringify({
+        project_id: projectId,
         project_key: projectKey,
         JQL,
       }),

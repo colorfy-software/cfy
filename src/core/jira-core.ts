@@ -1,3 +1,4 @@
+/* eslint-disable prefer-spread */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import cli from 'cli-ux'
 import chalk from 'chalk'
@@ -6,6 +7,10 @@ import { IssueBean, IssuePickerSuggestions, Project, SuggestedIssue } from 'jira
 import { moveIssueToStatus } from '../flows/commit-flow'
 import { AuthConfigType } from '../types/types'
 import core from './core'
+
+function uniq(a: string[]): string[] {
+  return [...new Set(a)]
+}
 
 class Jira {
   private client: null | Version2Client = null
@@ -150,6 +155,22 @@ class Jira {
         } catch (error) {
           reject(error)
         }
+      } else {
+        reject(new Error('No client provided'))
+      }
+    })
+  }
+
+  getAllStatusesForProject = (projectId: string): Promise<string[]> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (this.client) {
+        const issueTypes = await this.client.projects.getAllStatuses({ projectIdOrKey: projectId })
+        const statuses = issueTypes.map(issueType => issueType.statuses.map(status => status.name!)).flat()
+        resolve(uniq(statuses))
       } else {
         reject(new Error('No client provided'))
       }
