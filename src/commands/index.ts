@@ -108,7 +108,9 @@ export default class Create extends Command {
       this.handleTicketAfterCommit(currentIssue, projectID)
     }
 
-    this.log(chalk.green('\nAll done :)\n'))
+    if (whatNext.next === 3) {
+      this.log(chalk.green('\nAll done :)\n'))
+    }
   }
 
   async run(): Promise<void> {
