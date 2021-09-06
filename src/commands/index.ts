@@ -7,7 +7,7 @@ import inquirer = require('inquirer')
 import { Command } from '@oclif/command'
 
 import core from '../core/core'
-import { commitTypeQuestion } from '../flows/commit-flow'
+import { addCommentToIssueInput, commitTypeQuestion, whatToDoWithIssue } from '../flows/commit-flow'
 import {
   JQLQuestion,
   initAuthSetupQuestion,
@@ -18,6 +18,7 @@ import {
 } from '../flows/init-setup-flow'
 
 import { AuthConfigType } from '../types/types'
+import sleep from '../utils/sleep'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 inquirer.registerPrompt('search-list', require('inquirer-search-list'))
@@ -82,9 +83,8 @@ export default class Create extends Command {
       JQL: projectJQLToUse,
     })
 
-    setTimeout(() => {
-      this.run()
-    }, 500)
+    await sleep(500)
+    this.run()
   }
 
   async run(): Promise<void> {
@@ -118,9 +118,8 @@ export default class Create extends Command {
           )}\n`,
         )
 
-        setTimeout(() => {
-          this.run()
-        }, 500)
+        await sleep(500)
+        this.run()
       }
     }
 
@@ -155,7 +154,7 @@ export default class Create extends Command {
       console.log('\n')
 
       const ticketToUse = await ticketSelectionQuestion(tickets, jiraProject.key!)
-      const ticketAnswer = ticketToUse.ticket
+      const ticketAnswer = ticketToUse.ticket.ticketName
       const commitConfig = await commitTypeQuestion(ticketAnswer.split(' - ')[1])
 
       const commitMessage = constructCommitMessage(
@@ -165,17 +164,39 @@ export default class Create extends Command {
         commitConfig.message,
       )
 
+      let hasErrorCommitting = false
+
       exec(`git commit -m "${commitMessage}"`, (error, stdout, stderr) => {
         if (error) {
-          console.log(`error: ${error.message}`)
+          this.log(`${chalk.red(error.message)}`)
+          hasErrorCommitting = true
           return
         }
         if (stderr) {
-          console.log(`stderr: ${stderr}`)
+          this.log(`${chalk.red(stderr)}`)
+          hasErrorCommitting = true
           return
         }
-        console.log(`stdout: ${stdout}`)
+
+        this.log(chalk.green(`Commit successfully created with name: ${stdout} \n`))
       })
+
+      await sleep(50)
+
+      if (!hasErrorCommitting) {
+        await sleep(50)
+        const whatNext = await whatToDoWithIssue()
+
+        if (whatNext.next === 1) {
+          const ticketKey = ticketToUse.ticket.key!
+          const comment = (await addCommentToIssueInput()).comment
+          console.log('\n')
+          cli.action.start('Adding comment to the ticket')
+          await core.jira.addCommentToIssue(ticketKey, comment)
+          cli.action.stop()
+          console.log('\n')
+        }
+      }
     }
   }
 }

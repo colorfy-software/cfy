@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import { prompt } from 'inquirer'
-import { IssuePickerSuggestions, Project } from 'jira.js/out/version2/models'
+import { IssuePickerSuggestions, Project, SuggestedIssue } from 'jira.js/out/version2/models'
 
 import { validateEmail } from '../utils/validation'
 
@@ -120,10 +120,29 @@ export const JQLQuestion = async (): Promise<{ JQL: string }> => {
 export const ticketSelectionQuestion = async (
   issues: IssuePickerSuggestions,
   projectKey: string,
-): Promise<{ ticket: string }> => {
+): Promise<{ ticket: SuggestedIssue & { ticketName: string } }> => {
   const sections = issues.sections && issues.sections[0]
-  const availableIssues = (sections ? sections.issues?.map(issue => `${issue.key} - ${issue.summary}`) : []) || []
-  const choices = [`${projectKey} - !! Move on without a ticket number !!`, ...availableIssues]
+  const availableIssues =
+    (sections
+      ? sections.issues?.map(issue => {
+          return {
+            name: `${issue.key} - ${issue.summary}`,
+            value: {
+              ...issue,
+              ticketName: `${issue.key} - ${issue.summary}`,
+            },
+          }
+        })
+      : []) || []
+  const choices = [
+    {
+      name: `${projectKey} - !! Move on without a ticket number !!`,
+      value: {
+        ticketName: `${projectKey} - !! Move on without a ticket number !!`,
+      },
+    },
+    ...availableIssues,
+  ]
 
   const output = await prompt([
     {

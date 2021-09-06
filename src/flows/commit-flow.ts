@@ -75,3 +75,44 @@ export const commitTypeQuestion = async (
 
   return output
 }
+
+export const whatToDoWithIssue = async (): Promise<{ next: number }> => {
+  const output = await prompt([
+    {
+      type: 'search-list',
+      name: 'next',
+      message: 'Do you want to do anything with the ticket?',
+      choices: [
+        {
+          name: '1. Add comment to the ticket',
+          value: 1,
+        },
+        {
+          name: '2. Exit',
+          value: 2,
+        },
+      ],
+    },
+  ])
+
+  return output
+}
+
+export const addCommentToIssueInput = async (): Promise<{ comment: string }> => {
+  const output = await prompt([
+    {
+      type: 'input',
+      name: 'comment',
+      message: 'Comment to add to the issue',
+      validate(value) {
+        if (value.length === 0) {
+          return 'Sorry, you need to enter something here'
+        }
+
+        return true
+      },
+    },
+  ])
+
+  return output
+}

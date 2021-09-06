@@ -113,6 +113,24 @@ class Jira {
       }
     })
   }
+
+  addCommentToIssue = (id: string, comment: string): Promise<void> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (this.client) {
+        try {
+          await this.client.issueComments.addComment({ issueIdOrKey: id, body: comment })
+        } catch (error) {
+          reject(error)
+        }
+      } else {
+        reject(new Error('No client provided'))
+      }
+    })
+  }
 }
 
 export default new Jira()
