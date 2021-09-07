@@ -15,7 +15,7 @@ $ npm install -g @colorfy-software/cfy
 $ cfy COMMAND
 running command...
 $ cfy (-v|--version|version)
-@colorfy-software/cfy/0.0.5 darwin-x64 node-v14.17.6
+@colorfy-software/cfy/0.0.6 darwin-x64 node-v14.17.6
 $ cfy --help [COMMAND]
 USAGE
   $ cfy COMMAND
