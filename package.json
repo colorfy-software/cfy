@@ -1,7 +1,7 @@
 {
   "name": "@colorfy-software/cfy",
   "description": "Jira integrated commiting CLI",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Kristjan Vool <kristjanfou@gmail.com> (https://github.com/iremlopsum)",
   "bin": {
     "cfy": "./bin/run"
@@ -70,9 +70,8 @@
   },
   "repository": "colorfy-software/cfy",
   "scripts": {
-    "postpack": "rm -f oclif.manifest.json",
     "posttest": "eslint . --ext .ts --config .eslintrc",
-    "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
+    "prepack": "rm -rf lib tsconfig.tsbuildinfo && tsc -b && oclif-dev manifest && oclif-dev readme",
     "test": "echo NO TESTS",
     "version": "oclif-dev readme && git add README.md"
   },
