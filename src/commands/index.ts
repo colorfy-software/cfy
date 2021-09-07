@@ -51,6 +51,7 @@ export default class Create extends Command {
     const projectSettings = await projectSelectionQuestion(jiraProjects)
 
     console.log(chalk.yellow('\nNow we need to filter out correct tickets from all of the statuses\n'))
+    console.log('')
 
     const projectNameToUse = projectSettings.projectName
     const jiraProject = jiraProjects.filter(project => `${project.key} - ${project.name}` === projectNameToUse)[0]

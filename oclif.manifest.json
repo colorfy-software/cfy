@@ -1,1 +1,0 @@
-{"version":"0.0.3","commands":{"commit":{"id":"commit","description":"Create a new commit","pluginName":"@colorfy-software/cfy","pluginType":"core","aliases":[],"flags":{},"args":[]}}}

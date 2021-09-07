@@ -10,17 +10,14 @@
     "plugin:prettier/recommended"
   ],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
-  // "overrides": [
-  //   {
-  //     "files": ["*.js"],
-  //     "rules": {
-  //       "@typescript-eslint/explicit-function-return-type": "off"
-  //     }
-  //   }
-  // ],
+  "plugins": [
+    "@typescript-eslint"
+  ],
   "rules": {
-    "object-curly-spacing": [2, "always"],
+    "object-curly-spacing": [
+      2,
+      "always"
+    ],
     "eslint-comments/no-unlimited-disable": 0,
     "no-shadow": "off",
     "@typescript-eslint/no-shadow": "error",
@@ -31,7 +28,10 @@
     "no-tabs": 0,
     "no-nested-ternary": 0,
     "no-async-promise-executor": 0,
-    "object-shorthand": ["error", "always"],
+    "object-shorthand": [
+      "error",
+      "always"
+    ],
     "node/no-missing-import": 0,
     "unicorn/no-abusive-eslint-disable": 0
   }
