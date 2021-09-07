@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import { prompt } from 'inquirer'
-import { IssuePickerSuggestions, Project, SuggestedIssue } from 'jira.js/out/version2/models'
+import { IssuePickerSuggestions, Project } from 'jira.js/out/version2/models'
 
 import { validateEmail } from '../utils/validation'
 

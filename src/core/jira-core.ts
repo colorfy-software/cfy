@@ -6,15 +6,16 @@ import { Version2Client } from 'jira.js'
 import { IssueBean, IssuePickerSuggestions, Project, SuggestedIssue } from 'jira.js/out/version2/models'
 import { moveIssueToStatus } from '../flows/commit-flow'
 import { AuthConfigType } from '../types/types'
-import core from './core'
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const core = require('./core')
 
 function uniq(a: string[]): string[] {
   return [...new Set(a)]
 }
 
 class Jira {
-  private client: null | Version2Client = null
-  private accountId: undefined | string = undefined
+  client: null | Version2Client = null
+  accountId: undefined | string = undefined
 
   configureClientFromConfigFile = (config?: AuthConfigType) => {
     const jiraConfig = config || core.fs.getAuthConfig()

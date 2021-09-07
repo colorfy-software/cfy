@@ -153,7 +153,7 @@ export default class Create extends Command {
 
     if (!projectConfig && authConfig) {
       // If user has already set up jira auth previously, but is setting up a new project
-      // We do a nice thing and ask if ther really want to do it
+      // We do a nice thing and ask if they really want to do it
       if (!this.hasDoneAuthConfig) {
         const shouldSetupProject = (await initProjectSetupQuestion()).value
 

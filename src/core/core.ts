@@ -1,9 +1,12 @@
 import fs from './fs-core'
 import jira from './jira-core'
-import settings from './settings-core'
 
-export default {
+const core: {
+  fs: typeof fs
+  jira: typeof jira
+} = {
   fs,
   jira,
-  settings,
 }
+
+export default core
