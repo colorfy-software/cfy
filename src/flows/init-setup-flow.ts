@@ -5,13 +5,11 @@ import { IssuePickerSuggestions, Project } from 'jira.js/out/version2/models'
 import { validateEmail } from '../utils/validation'
 
 export const initAuthSetupQuestion = async (): Promise<{ value: boolean }> => {
-  console.log(chalk.red("\nSeems like you don't have cfy connected to Jira\n"))
-
   const output = await prompt([
     {
       type: 'confirm',
       name: 'value',
-      message: 'Do you want to setup the project to use cfy?',
+      message: 'Do you want to connect Jira to cfy?',
       default: true,
     },
   ])
@@ -33,8 +31,6 @@ export const initContinueToCommitting = async (): Promise<{ value: boolean }> =>
 }
 
 export const initProjectSetupQuestion = async (): Promise<{ value: boolean }> => {
-  console.log(chalk.red("\nSeems like you don't have cfy set up for the current project\n"))
-
   const output = await prompt([
     {
       type: 'confirm',

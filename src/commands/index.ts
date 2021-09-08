@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 /* eslint-disable no-implicit-coercion */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable no-negated-condition */
@@ -41,6 +42,8 @@ export default class Create extends Command {
   static flags = {
     // can pass either --force or -f
     ticket: flags.boolean({ char: 't' }),
+    auth: flags.boolean({ char: 'a' }),
+    config: flags.boolean({ char: 'c' }),
   }
 
   hasDoneAuthConfig = false
@@ -151,8 +154,16 @@ export default class Create extends Command {
     }
 
     // Setup authentication to Jira if not setup
-    if (!authConfig) {
-      const shouldInitializeProject = (await initAuthSetupQuestion()).value
+    if (!authConfig || properties.auth) {
+      if (!properties.auth && !properties.config) {
+        console.log(chalk.red("\nSeems like you don't have cfy connected to Jira\n"))
+      }
+
+      const shouldInitializeProject = properties.auth || properties.config || (await initAuthSetupQuestion()).value
+
+      if (properties.auth) {
+        console.log(chalk.red('\nYou are about to update your Jira authentication setup\n'))
+      }
 
       if (shouldInitializeProject) {
         const projectInitConfig = await jiraAuthenticationQuestions()
@@ -178,29 +189,49 @@ export default class Create extends Command {
         )
 
         await sleep(500)
-        this.run()
+
+        if (!properties.auth) {
+          this.run()
+        } else {
+          return
+        }
       }
     }
 
     // Setup Jira project if not setup
 
-    if (!projectConfig && authConfig) {
+    if ((!projectConfig && authConfig) || properties.config) {
       // If user has already set up jira auth previously, but is setting up a new project
       // We do a nice thing and ask if they really want to do it
-      if (!this.hasDoneAuthConfig) {
-        const shouldSetupProject = (await initProjectSetupQuestion()).value
+
+      if (!authConfig) {
+        console.log(chalk.red("\nYou can't update project config without setting up jira auth.\n"))
+        const shouldAuth = (await initAuthSetupQuestion()).value
+
+        if (shouldAuth) {
+          this.run()
+        }
+      } else if (!this.hasDoneAuthConfig) {
+        if (!properties.config) {
+          console.log(chalk.red("\nSeems like you don't have cfy set up for the current project\n"))
+        }
+
+        const shouldSetupProject = properties.config || (await initProjectSetupQuestion()).value
 
         if (shouldSetupProject) {
+          if (properties.config) {
+            console.log(chalk.red('\nYou are about to update your project configuration setup'))
+          }
           this.setupProjectWithCfy(authConfig)
         }
-      } else {
+      } else if (properties.config) {
         this.setupProjectWithCfy(authConfig)
       }
     }
 
     // Run the actual commit message logic
 
-    if (authConfig && projectConfig && !properties.ticket) {
+    if (authConfig && projectConfig && !properties.ticket && !properties.auth && !properties.config) {
       exec(`git diff --name-only --cached`, async (gitDiffError, gitDiffStdout, gitDiffStderr) => {
         if (gitDiffError) {
           this.log(`${chalk.red(gitDiffError.message)}`)
