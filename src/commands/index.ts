@@ -5,7 +5,7 @@ import cli from 'cli-ux'
 import chalk from 'chalk'
 import { exec } from 'child_process'
 import inquirer = require('inquirer')
-import { Command } from '@oclif/command'
+import { Command, flags } from '@oclif/command'
 import { IssueBean } from 'jira.js/out/version2/models'
 import { SuggestedIssue } from 'jira.js/out/version2/models/suggestedIssue'
 
@@ -19,6 +19,7 @@ import {
   initProjectSetupQuestion,
   projectSelectionQuestion,
   jiraAuthenticationQuestions,
+  initContinueToCommitting,
 } from '../flows/init-setup-flow'
 
 import { AuthConfigType } from '../types/types'
@@ -37,6 +38,10 @@ const constructCommitMessage = (ticketNumber: string, commitType: string, wip: b
 
 export default class Create extends Command {
   static description = 'Create a new commit'
+  static flags = {
+    // can pass either --force or -f
+    ticket: flags.boolean({ char: 't' }),
+  }
 
   hasDoneAuthConfig = false
 
@@ -51,7 +56,6 @@ export default class Create extends Command {
     const projectSettings = await projectSelectionQuestion(jiraProjects)
 
     console.log(chalk.yellow('\nNow we need to filter out correct tickets from all of the statuses\n'))
-    console.log('')
 
     const projectNameToUse = projectSettings.projectName
     const jiraProject = jiraProjects.filter(project => `${project.key} - ${project.name}` === projectNameToUse)[0]
@@ -81,7 +85,14 @@ export default class Create extends Command {
     })
 
     await sleep(500)
-    this.run()
+
+    console.log(chalk.green.bold("\nYou're all setup to use cfy now :)\n"))
+
+    const shouldContinue = await initContinueToCommitting()
+
+    if (shouldContinue.value) {
+      this.run()
+    }
   }
 
   async handleTicketAfterCommit(issue: SuggestedIssue | IssueBean, projectID: string): Promise<void> {
@@ -115,8 +126,29 @@ export default class Create extends Command {
   }
 
   async run(): Promise<void> {
+    const { flags: properties } = this.parse(Create)
     const authConfig = core.fs.getAuthConfig()
     const projectConfig = core.fs.getProjectConfig()
+
+    if (properties.ticket && authConfig && projectConfig) {
+      this.log('\n')
+
+      core.jira.configureClientFromConfigFile(authConfig)
+      const projectKey = projectConfig.project_key
+      cli.action.start('Fetching your Jira tickets')
+      const jiraProjects = await core.jira.getProjectsForAccount()
+      const jiraProject = jiraProjects.filter(project => project.key === projectKey)[0]
+      const projectID = jiraProject.id!
+
+      const tickets = await core.jira.getTicketsForCurrentProject(projectID, projectConfig.JQL)
+      cli.action.stop()
+      console.log('\n')
+
+      const ticketToUse = await ticketSelectionQuestion(tickets, jiraProject.key!, true)
+      const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
+
+      this.handleTicketAfterCommit(issueBasedOnName, projectID)
+    }
 
     // Setup authentication to Jira if not setup
     if (!authConfig) {
@@ -168,7 +200,7 @@ export default class Create extends Command {
 
     // Run the actual commit message logic
 
-    if (authConfig && projectConfig) {
+    if (authConfig && projectConfig && !properties.ticket) {
       exec(`git diff --name-only --cached`, async (gitDiffError, gitDiffStdout, gitDiffStderr) => {
         if (gitDiffError) {
           this.log(`${chalk.red(gitDiffError.message)}`)

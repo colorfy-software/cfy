@@ -19,6 +19,19 @@ export const initAuthSetupQuestion = async (): Promise<{ value: boolean }> => {
   return output
 }
 
+export const initContinueToCommitting = async (): Promise<{ value: boolean }> => {
+  const output = await prompt([
+    {
+      type: 'confirm',
+      name: 'value',
+      message: 'Do you want to commit your current progress?',
+      default: true,
+    },
+  ])
+
+  return output
+}
+
 export const initProjectSetupQuestion = async (): Promise<{ value: boolean }> => {
   console.log(chalk.red("\nSeems like you don't have cfy set up for the current project\n"))
 
@@ -133,6 +146,7 @@ export const getStatusesForProject = async (statuses: string[]): Promise<{ statu
 export const ticketSelectionQuestion = async (
   issues: IssuePickerSuggestions,
   projectKey: string,
+  hideEmptyTicket?: boolean | undefined,
 ): Promise<{ ticket: string }> => {
   const sections = issues.sections && issues.sections[0]
   const availableIssues =
@@ -144,18 +158,22 @@ export const ticketSelectionQuestion = async (
         })
       : []) || []
 
-  const choices = [
-    {
-      name: `${projectKey} - !! Move on without a ticket number !!`,
-    },
-    ...availableIssues,
-  ]
+  const choices = hideEmptyTicket
+    ? availableIssues
+    : [
+        {
+          name: `${projectKey} - !! Move on without a ticket number !!`,
+        },
+        ...availableIssues,
+      ]
 
   const output = await prompt([
     {
       type: 'search-list',
       name: 'ticket',
-      message: 'Choose which ticket you want to connect the commit to',
+      message: hideEmptyTicket
+        ? 'Choose which ticket you want to take an action on'
+        : 'Choose which ticket you want to connect the commit to',
       choices,
     },
   ])
