@@ -169,51 +169,76 @@ export default class Create extends Command {
     // Run the actual commit message logic
 
     if (authConfig && projectConfig) {
-      core.jira.configureClientFromConfigFile(authConfig)
-      const projectKey = projectConfig.project_key
-      console.log('\n')
-      cli.action.start('Fetching your Jira tickets')
-      const jiraProjects = await core.jira.getProjectsForAccount()
-      const jiraProject = jiraProjects.filter(project => project.key === projectKey)[0]
-      const projectID = jiraProject.id!
-
-      const tickets = await core.jira.getTicketsForCurrentProject(projectID, projectConfig.JQL)
-      cli.action.stop()
-      console.log('\n')
-
-      const ticketToUse = await ticketSelectionQuestion(tickets, jiraProject.key!)
-      const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
-
-      const ticketAnswer = ticketToUse.ticket
-      const commitConfig = await commitTypeQuestion(ticketAnswer.split(' - ')[1])
-
-      const commitMessage = constructCommitMessage(
-        ticketAnswer.split(' - ')[0],
-        commitConfig.type,
-        commitConfig.wip,
-        commitConfig.message,
-      )
-
-      const isUsingAnExistingTicket = Boolean(issueBasedOnName.key)
-
-      exec(`git commit -m "${commitMessage}"`, async (error, stdout, stderr) => {
-        if (error) {
-          this.log(`${chalk.red(error.message)}`)
+      exec(`git diff --name-only --cached`, async (gitDiffError, gitDiffStdout, gitDiffStderr) => {
+        if (gitDiffError) {
+          this.log(`${chalk.red(gitDiffError.message)}`)
           return
         }
 
-        if (stderr) {
-          this.log(`${chalk.red(stderr)}`)
+        if (gitDiffStderr) {
+          this.log(`${chalk.red(gitDiffStderr)}`)
           return
         }
 
-        this.log(chalk.green(`\n\nCommit successfully created\n`))
-        this.log(chalk.green(`\n${stdout}\n`))
+        if (gitDiffStdout.length === 0) {
+          this.log(
+            chalk.red.bold(
+              '\nYou have no staged changes. Please stage some changes or run "cfy -t" to take actions on tickets without commiting\n',
+            ),
+          )
+        } else {
+          this.log(`Staged files:\n`)
+          this.log(chalk.green(`${gitDiffStdout}`))
+          this.log(chalk.green(`${gitDiffStdout.length}`))
 
-        await sleep(50)
+          sleep(50)
 
-        if (isUsingAnExistingTicket) {
-          this.handleTicketAfterCommit(issueBasedOnName, projectID)
+          core.jira.configureClientFromConfigFile(authConfig)
+          const projectKey = projectConfig.project_key
+          cli.action.start('Fetching your Jira tickets')
+          const jiraProjects = await core.jira.getProjectsForAccount()
+          const jiraProject = jiraProjects.filter(project => project.key === projectKey)[0]
+          const projectID = jiraProject.id!
+
+          const tickets = await core.jira.getTicketsForCurrentProject(projectID, projectConfig.JQL)
+          cli.action.stop()
+          console.log('\n')
+
+          const ticketToUse = await ticketSelectionQuestion(tickets, jiraProject.key!)
+          const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
+
+          const ticketAnswer = ticketToUse.ticket
+          const commitConfig = await commitTypeQuestion(ticketAnswer.split(' - ')[1])
+
+          const commitMessage = constructCommitMessage(
+            ticketAnswer.split(' - ')[0],
+            commitConfig.type,
+            commitConfig.wip,
+            commitConfig.message,
+          )
+
+          const isUsingAnExistingTicket = Boolean(issueBasedOnName.key)
+
+          exec(`git commit -m "${commitMessage}"`, async (error, stdout, stderr) => {
+            if (error) {
+              this.log(`${chalk.red(error.message)}`)
+              return
+            }
+
+            if (stderr) {
+              this.log(`${chalk.red(stderr)}`)
+              return
+            }
+
+            this.log(chalk.green(`\n\nCommit successfully created\n`))
+            this.log(chalk.green(`\n${stdout}\n`))
+
+            await sleep(50)
+
+            if (isUsingAnExistingTicket) {
+              this.handleTicketAfterCommit(issueBasedOnName, projectID)
+            }
+          })
         }
       })
     }
