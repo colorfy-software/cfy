@@ -189,9 +189,8 @@ export default class Create extends Command {
         } else {
           this.log(`Staged files:\n`)
           this.log(chalk.green(`${gitDiffStdout}`))
-          this.log(chalk.green(`${gitDiffStdout.length}`))
 
-          sleep(50)
+          await sleep(50)
 
           core.jira.configureClientFromConfigFile(authConfig)
           const projectKey = projectConfig.project_key
