@@ -4,10 +4,11 @@ import cli from 'cli-ux'
 import chalk from 'chalk'
 import { Version2Client } from 'jira.js'
 import { IssueBean, IssuePickerSuggestions, Project, SuggestedIssue } from 'jira.js/out/version2/models'
+
+import core from './core'
 import { moveIssueToStatus } from '../flows/commit-flow'
+
 import { AuthConfigType } from '../types/types'
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const core = require('./core')
 
 function uniq(a: string[]): string[] {
   return [...new Set(a)]
