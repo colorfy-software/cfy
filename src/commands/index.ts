@@ -4,7 +4,7 @@
 /* eslint-disable no-negated-condition */
 import cli from 'cli-ux'
 import chalk from 'chalk'
-import { exec } from 'child_process'
+import { prompt } from 'inquirer'
 import inquirer = require('inquirer')
 import { Command, flags } from '@oclif/command'
 import { IssueBean } from 'jira.js/out/version2/models'
@@ -12,13 +12,17 @@ import { SuggestedIssue } from 'jira.js/out/version2/models/suggestedIssue'
 
 import core from '../core/core'
 import sleep from '../utils/sleep'
-import { addCommentToIssueInput, commitTypeQuestion, whatToDoWithIssue } from '../flows/commit-flow'
+import { runCommand } from '../helpers/commands'
 import {
-  getStatusesForProject,
+  addCommentToIssueInput,
+  assignIssueTo,
+  commitTypeQuestion,
+  whatToDoWithSingleIssue,
+} from '../flows/commit-flow'
+import {
   initAuthSetupQuestion,
   ticketSelectionQuestion,
   initProjectSetupQuestion,
-  projectSelectionQuestion,
   jiraAuthenticationQuestions,
   initContinueToCommitting,
 } from '../flows/init-setup-flow'
@@ -49,58 +53,21 @@ export default class Create extends Command {
   hasDoneAuthConfig = false
 
   async setupProjectWithCfy(authConfig: AuthConfigType): Promise<void> {
-    core.jira.configureClientFromConfigFile(authConfig)
-    console.log('\n')
-    cli.action.start('Fetching Jira projects')
-    const jiraProjects = await core.jira.getProjectsForAccount()
-    cli.action.stop()
-    console.log('\n')
+    try {
+      await core.jira.connectCfyToProject(authConfig)
+      const shouldContinue = await initContinueToCommitting()
 
-    const projectSettings = await projectSelectionQuestion(jiraProjects)
-
-    console.log(chalk.yellow('\nNow we need to filter out correct tickets from all of the statuses\n'))
-
-    const projectNameToUse = projectSettings.projectName
-    const jiraProject = jiraProjects.filter(project => `${project.key} - ${project.name}` === projectNameToUse)[0]
-    const availableStatuses = await core.jira.getAllStatusesForProject(jiraProject.id!)
-    const selectedStatuses = await getStatusesForProject(availableStatuses)
-
-    const JQLString = selectedStatuses.statusSelections.reduce((accumulator, currentValue, index, array) => {
-      if (currentValue.split(' ').length > 1) {
-        accumulator += `"${currentValue}"`
-      } else {
-        accumulator += `${currentValue}`
+      if (shouldContinue.value) {
+        this.run()
       }
-
-      if (array.length - 1 === index) {
-        accumulator += ')'
-      } else {
-        accumulator += `, `
-      }
-
-      return accumulator
-    }, 'status in (')
-
-    core.fs.createAndStoreConfigFile({
-      projectId: jiraProject.id!,
-      projectKey: jiraProject.key!,
-      JQL: JQLString,
-    })
-
-    await sleep(500)
-
-    console.log(chalk.green.bold("\nYou're all setup to use cfy now :)\n"))
-
-    const shouldContinue = await initContinueToCommitting()
-
-    if (shouldContinue.value) {
-      this.run()
+    } catch (error) {
+      this.log(`${chalk.red(error)}`)
     }
   }
 
   async handleTicketAfterCommit(issue: SuggestedIssue | IssueBean, projectID: string): Promise<void> {
     const currentIssue = await core.jira.getIssueBasedOnIdOrKey(issue.key!)
-    const whatNext = await whatToDoWithIssue()
+    const whatNext = await whatToDoWithSingleIssue()
 
     if (whatNext.next === 1) {
       const ticketKey = currentIssue.key!
@@ -128,39 +95,187 @@ export default class Create extends Command {
     }
   }
 
+  async handleTicket(issue: SuggestedIssue | IssueBean, projectID: string): Promise<void> {
+    const currentIssue = await core.jira.getIssueBasedOnIdOrKey(issue.key!)
+    const whatNext = await whatToDoWithSingleIssue()
+
+    if (whatNext.next === 1) {
+      const ticketKey = currentIssue.key!
+      const comment = (await addCommentToIssueInput()).comment
+      console.log('\n')
+      cli.action.start('Adding comment to the ticket')
+      await core.jira.addCommentToIssue(ticketKey, comment)
+      cli.action.stop()
+      console.log('\n')
+
+      sleep(50)
+      this.handleTicketAfterCommit(currentIssue, projectID)
+    }
+
+    if (whatNext.next === 2) {
+      // Move ticket to new column
+      await core.jira.moveIssueToNewStatus(currentIssue.id!, projectID)
+
+      sleep(50)
+      this.handleTicketAfterCommit(currentIssue, projectID)
+    }
+
+    if (whatNext.next === 3) {
+      console.log('\n')
+      cli.action.start('Getting user list')
+      const users = await core.jira.getAllUsers(projectID)
+      cli.action.stop()
+      console.log('\n')
+
+      const userToAssignTo = (await assignIssueTo(users)).user
+      const userIdToAssignTo = users.filter(u => u.displayName === userToAssignTo)[0].accountId
+
+      console.log('\n')
+      cli.action.start('Assigning ticket')
+      await core.jira.assignTicketToANewUser(currentIssue.id!, userIdToAssignTo!)
+      cli.action.stop(`Ticket has been assigned to ${userToAssignTo}`)
+      console.log('\n')
+
+      sleep(50)
+      this.handleTicketAfterCommit(currentIssue, projectID)
+    }
+
+    if (whatNext.next === 4) {
+      this.run()
+    }
+
+    if (whatNext.next === 5) {
+      this.log(chalk.green('\nAll done :)\n'))
+    }
+  }
+
   async run(): Promise<void> {
     const { flags: properties } = this.parse(Create)
     const authConfig = core.fs.getAuthConfig()
     const projectConfig = core.fs.getProjectConfig()
 
+    // take actions on a ticket (using -t)
     if (properties.ticket && authConfig && projectConfig) {
+      core.jira.configureClientFromConfigFile(authConfig)
+
       this.log('\n')
 
-      core.jira.configureClientFromConfigFile(authConfig)
-      const projectKey = projectConfig.project_key
-      cli.action.start('Fetching your Jira tickets')
-      const jiraProjects = await core.jira.getProjectsForAccount()
-      const jiraProject = jiraProjects.filter(project => project.key === projectKey)[0]
-      const projectID = jiraProject.id!
+      const data = [
+        {
+          label: 'Show tickets from config statuses',
+          value: 0,
+        },
+        {
+          label: 'Show all tickets assigned to you',
+          value: 1,
+        },
+        {
+          label: 'Show all tickets in the project',
+          value: 2,
+        },
+        {
+          label: 'Create a ticket',
+          value: 3,
+        },
+        {
+          label: 'Exit',
+          value: 4,
+        },
+      ]
 
-      const tickets = await core.jira.getTicketsForCurrentProject(projectID, projectConfig.JQL)
-      cli.action.stop()
-      console.log('\n')
+      cli.table(data, {
+        commands: {
+          get: row => row.value,
+        },
+        action: {
+          get: row => row.label,
+        },
+      })
 
-      const ticketToUse = await ticketSelectionQuestion(tickets, jiraProject.key!, true)
-      const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
+      this.log('\n')
 
-      this.handleTicketAfterCommit(issueBasedOnName, projectID)
+      const output = await prompt([
+        {
+          type: 'input',
+          name: 'actionValue',
+          message: 'Enter the command you wish to proceed with',
+          default: 0,
+          validate(value) {
+            if (value.length === 0) {
+              return 'Sorry, you need to enter something here'
+            }
+
+            return true
+          },
+        },
+      ])
+
+      if (parseInt(output.actionValue, 10) === 0) {
+        core.jira.configureClientFromConfigFile(authConfig)
+        console.log('\n')
+        cli.action.start('Fetching your Jira tickets from statuses in config')
+        const tickets = await core.jira.getJQLTicketsForCurrentProject(projectConfig.project_id, projectConfig.JQL)
+        cli.action.stop()
+        console.log('\n')
+
+        const ticketToUse = await ticketSelectionQuestion(tickets, projectConfig.project_key, true)
+        const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
+
+        this.handleTicket(issueBasedOnName, projectConfig.project_id)
+      }
+
+      if (parseInt(output.actionValue, 10) === 1) {
+        core.jira.configureClientFromConfigFile(authConfig)
+        console.log('\n')
+        cli.action.start('Fetching all of your Jira tickets for the project')
+        const tickets = await core.jira.getAllTicketsAssignedToUserForCurrentProject(projectConfig.project_id)
+        cli.action.stop()
+        console.log('\n')
+
+        const ticketToUse = await ticketSelectionQuestion(tickets, projectConfig.project_key, true)
+        const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
+
+        this.handleTicket(issueBasedOnName, projectConfig.project_id)
+      }
+
+      if (parseInt(output.actionValue, 10) === 2) {
+        core.jira.configureClientFromConfigFile(authConfig)
+        console.log('\n')
+        cli.action.start('Fetching all Jira tickets for project')
+        const tickets = await core.jira.getAllTicketsForCurrentProject(projectConfig.project_id)
+        cli.action.stop()
+        console.log('\n')
+
+        const ticketToUse = await ticketSelectionQuestion(tickets, projectConfig.project_key, true)
+        const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
+
+        this.handleTicket(issueBasedOnName, projectConfig.project_id)
+      }
+
+      if (parseInt(output.actionValue, 10) === 3) {
+        this.log(chalk.yellow('\nUnfortunately this is still work in progress. Should be in soon\n'))
+      }
+
+      if (parseInt(output.actionValue, 10) === 4) {
+        this.log(chalk.green('\nAll done :)\n'))
+      }
+
+      return
     }
 
     // Setup authentication to Jira if not setup
+    // We reach here if auth config is missing or user triggers cfy -a (cfy --auth)
     if (!authConfig || properties.auth) {
+      // If user is running default cfy command, but auth isn't setup yet
+      // We log this warning
       if (!properties.auth && !properties.config) {
         console.log(chalk.red("\nSeems like you don't have cfy connected to Jira\n"))
       }
 
+      // If user reaches here without extra flags in the command we ask if they want to setup cfy + jira
       const shouldInitializeProject = properties.auth || properties.config || (await initAuthSetupQuestion()).value
 
+      // If user reaches here due to -a flag, we log that they are about to update they jira auth config
       if (properties.auth) {
         console.log(chalk.red('\nYou are about to update your Jira authentication setup\n'))
       }
@@ -168,12 +283,14 @@ export default class Create extends Command {
       if (shouldInitializeProject) {
         const projectInitConfig = await jiraAuthenticationQuestions()
 
+        // Creates a Jira client instance
         core.jira.configureJiraClient({
           domain: projectInitConfig.domain,
           email: projectInitConfig.email,
           token: projectInitConfig.token,
         })
 
+        // Creates ~/.cfy file and stores Jira auth config
         core.fs.createAndStoreAuthFile({
           domain: projectInitConfig.domain,
           email: projectInitConfig.email,
@@ -190,6 +307,7 @@ export default class Create extends Command {
 
         await sleep(500)
 
+        // If we reach here without --auth flag then we re-run the whole command to reach the next step
         if (!properties.auth) {
           this.run()
         } else {
@@ -198,12 +316,10 @@ export default class Create extends Command {
       }
     }
 
-    // Setup Jira project if not setup
-
+    // Setup connection to Jira project if not setup or triggered with -c (--config)
     if ((!projectConfig && authConfig) || properties.config) {
-      // If user has already set up jira auth previously, but is setting up a new project
-      // We do a nice thing and ask if they really want to do it
-
+      // If there's no auth created to Jira we ask if users wants to do that instead
+      // This mostly should happen if user calls cfy -c without setting up auth before
       if (!authConfig) {
         console.log(chalk.red("\nYou can't update project config without setting up jira auth.\n"))
         const shouldAuth = (await initAuthSetupQuestion()).value
@@ -216,6 +332,8 @@ export default class Create extends Command {
           console.log(chalk.red("\nSeems like you don't have cfy set up for the current project\n"))
         }
 
+        // If user has already set up jira auth previously, but is setting up a new project
+        // We do a nice thing and ask if they really want to do it
         const shouldSetupProject = properties.config || (await initProjectSetupQuestion()).value
 
         if (shouldSetupProject) {
@@ -232,18 +350,11 @@ export default class Create extends Command {
     // Run the actual commit message logic
 
     if (authConfig && projectConfig && !properties.ticket && !properties.auth && !properties.config) {
-      exec(`git diff --name-only --cached`, async (gitDiffError, gitDiffStdout, gitDiffStderr) => {
-        if (gitDiffError) {
-          this.log(`${chalk.red(gitDiffError.message)}`)
-          return
-        }
+      try {
+        const stagedFiles = await runCommand('git diff --name-only --cached')
 
-        if (gitDiffStderr) {
-          this.log(`${chalk.red(gitDiffStderr)}`)
-          return
-        }
-
-        if (gitDiffStdout.length === 0) {
+        // If no staged files we show an error and exit
+        if (stagedFiles.length === 0) {
           this.log(
             chalk.red.bold(
               '\nYou have no staged changes. Please stage some changes or run "cfy -t" to take actions on tickets without commiting\n',
@@ -251,24 +362,20 @@ export default class Create extends Command {
           )
         } else {
           this.log(`Staged files:\n`)
-          this.log(chalk.green(`${gitDiffStdout}`))
+          this.log(chalk.green(`${stagedFiles}`))
 
           await sleep(50)
 
           core.jira.configureClientFromConfigFile(authConfig)
-          const projectKey = projectConfig.project_key
-          cli.action.start('Fetching your Jira tickets')
-          const jiraProjects = await core.jira.getProjectsForAccount()
-          const jiraProject = jiraProjects.filter(project => project.key === projectKey)[0]
-          const projectID = jiraProject.id!
 
-          const tickets = await core.jira.getTicketsForCurrentProject(projectID, projectConfig.JQL)
+          cli.action.start('Fetching your Jira tickets')
+          const tickets = await core.jira.getJQLTicketsForCurrentProject(projectConfig.project_id, projectConfig.JQL)
           cli.action.stop()
+
           console.log('\n')
 
-          const ticketToUse = await ticketSelectionQuestion(tickets, jiraProject.key!)
+          const ticketToUse = await ticketSelectionQuestion(tickets, projectConfig.project_key)
           const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
-
           const ticketAnswer = ticketToUse.ticket
           const commitConfig = await commitTypeQuestion(ticketAnswer.split(' - ')[1])
 
@@ -281,28 +388,24 @@ export default class Create extends Command {
 
           const isUsingAnExistingTicket = Boolean(issueBasedOnName.key)
 
-          exec(`git commit -m "${commitMessage}"`, async (error, stdout, stderr) => {
-            if (error) {
-              this.log(`${chalk.red(error.message)}`)
-              return
-            }
-
-            if (stderr) {
-              this.log(`${chalk.red(stderr)}`)
-              return
-            }
+          try {
+            const commit = await runCommand(`git commit -m "${commitMessage}"`)
 
             this.log(chalk.green(`\n\nCommit successfully created\n`))
-            this.log(chalk.green(`\n${stdout}\n`))
+            this.log(chalk.green(`\n${commit}\n`))
 
             await sleep(50)
 
             if (isUsingAnExistingTicket) {
-              this.handleTicketAfterCommit(issueBasedOnName, projectID)
+              this.handleTicketAfterCommit(issueBasedOnName, projectConfig.project_id)
             }
-          })
+          } catch (error) {
+            this.log(`${chalk.red(error)}`)
+          }
         }
-      })
+      } catch (error) {
+        this.log(`${chalk.red(error)}`)
+      }
     }
   }
 }

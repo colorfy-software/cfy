@@ -1,4 +1,5 @@
 import { prompt } from 'inquirer'
+import { User } from 'jira.js/out/version2/models'
 
 export const commitTypeQuestion = async (
   defaultMessage?: string,
@@ -76,7 +77,41 @@ export const commitTypeQuestion = async (
   return output
 }
 
-export const whatToDoWithIssue = async (): Promise<{ next: number }> => {
+export const whatToDoWithSingleIssue = async (): Promise<{ next: number }> => {
+  const output = await prompt([
+    {
+      type: 'search-list',
+      name: 'next',
+      message: 'Do you want to do anything with the ticket?',
+      choices: [
+        {
+          name: '1. Add comment to the ticket',
+          value: 1,
+        },
+        {
+          name: '2. Move ticket to another status',
+          value: 2,
+        },
+        {
+          name: '3. Reassign ticket to another person',
+          value: 3,
+        },
+        {
+          name: '4. Select another ticket',
+          value: 4,
+        },
+        {
+          name: '5. Exit',
+          value: 5,
+        },
+      ],
+    },
+  ])
+
+  return output
+}
+
+export const whatToDoWithMultiIssue = async (): Promise<{ next: number }> => {
   const output = await prompt([
     {
       type: 'search-list',
@@ -96,6 +131,19 @@ export const whatToDoWithIssue = async (): Promise<{ next: number }> => {
           value: 3,
         },
       ],
+    },
+  ])
+
+  return output
+}
+
+export const assignIssueTo = async (users: User[]): Promise<{ user: string }> => {
+  const output = await prompt([
+    {
+      type: 'search-list',
+      name: 'user',
+      message: 'Which status do you want to move the ticket to?',
+      choices: users.map(user => user.displayName),
     },
   ])
 

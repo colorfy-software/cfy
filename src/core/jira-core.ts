@@ -3,12 +3,14 @@
 import cli from 'cli-ux'
 import chalk from 'chalk'
 import { Version2Client } from 'jira.js'
-import { IssueBean, IssuePickerSuggestions, Project, SuggestedIssue } from 'jira.js/out/version2/models'
+import { IssueBean, IssuePickerSuggestions, Project, SuggestedIssue, User } from 'jira.js/out/version2/models'
 
 import core from './core'
 import { moveIssueToStatus } from '../flows/commit-flow'
 
 import { AuthConfigType } from '../types/types'
+import { getStatusesForProject, projectSelectionQuestion } from '../flows/init-setup-flow'
+import sleep from '../utils/sleep'
 
 function uniq(a: string[]): string[] {
   return [...new Set(a)]
@@ -76,7 +78,7 @@ class Jira {
     })
   }
 
-  getTicketsForCurrentProject = async (projectId: string, JQL: string): Promise<IssuePickerSuggestions> => {
+  getJQLTicketsForCurrentProject = async (projectId: string, JQL: string): Promise<IssuePickerSuggestions> => {
     if (!this.client) {
       this.configureClientFromConfigFile()
     }
@@ -89,6 +91,54 @@ class Jira {
           const issuesForProject = await this.client.issueSearch.getIssuePickerResource({
             currentProjectId: projectId,
             currentJQL: `assignee in (${accountId}) AND ${JQL}`,
+          })
+
+          resolve(issuesForProject)
+        } catch (error) {
+          reject(error)
+        }
+      } else {
+        reject(new Error('No client provided'))
+      }
+    })
+  }
+
+  getAllTicketsAssignedToUserForCurrentProject = async (projectId: string): Promise<IssuePickerSuggestions> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (this.client) {
+        try {
+          const accountId = await this.getAccountID()
+
+          const issuesForProject = await this.client.issueSearch.getIssuePickerResource({
+            currentProjectId: projectId,
+            currentJQL: `assignee in (${accountId})`,
+          })
+
+          resolve(issuesForProject)
+        } catch (error) {
+          reject(error)
+        }
+      } else {
+        reject(new Error('No client provided'))
+      }
+    })
+  }
+
+  getAllTicketsForCurrentProject = async (projectId: string): Promise<IssuePickerSuggestions> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (this.client) {
+        try {
+          const issuesForProject = await this.client.issueSearch.getIssuePickerResource({
+            currentProjectId: projectId,
+            currentJQL: ``,
           })
 
           resolve(issuesForProject)
@@ -179,6 +229,44 @@ class Jira {
     })
   }
 
+  getAllUsers = (projectId: string): Promise<User[]> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (this.client) {
+        try {
+          const users = await this.client.userSearch.findAssignableUsers({ project: projectId })
+          resolve(users)
+        } catch (error) {
+          console.log(error)
+        }
+      } else {
+        reject(new Error('No client provided'))
+      }
+    })
+  }
+
+  assignTicketToANewUser = (issueIdOrKey: string, accountId: string): Promise<void> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (this.client) {
+        try {
+          await this.client.issues.assignIssue({ issueIdOrKey, accountId })
+          resolve()
+        } catch (error) {
+          console.log(error)
+        }
+      } else {
+        reject(new Error('No client provided'))
+      }
+    })
+  }
+
   moveIssueToNewStatus = (id: string, projectID: string): Promise<void> => {
     if (!this.client) {
       this.configureClientFromConfigFile()
@@ -258,6 +346,58 @@ class Jira {
     }
 
     return {}
+  }
+
+  connectCfyToProject = (authConfig: AuthConfigType): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        this.configureClientFromConfigFile(authConfig)
+        console.log('\n')
+        cli.action.start('Fetching Jira projects')
+        const jiraProjects = await this.getProjectsForAccount()
+        cli.action.stop()
+        console.log('\n')
+
+        const projectSettings = await projectSelectionQuestion(jiraProjects)
+
+        console.log(chalk.yellow('\nNow we need to filter out correct tickets from all of the statuses\n'))
+
+        const projectNameToUse = projectSettings.projectName
+        const jiraProject = jiraProjects.filter(project => `${project.key} - ${project.name}` === projectNameToUse)[0]
+        const availableStatuses = await this.getAllStatusesForProject(jiraProject.id!)
+        const selectedStatuses = await getStatusesForProject(availableStatuses)
+
+        const JQLString = selectedStatuses.statusSelections.reduce((accumulator, currentValue, index, array) => {
+          if (currentValue.split(' ').length > 1) {
+            accumulator += `"${currentValue}"`
+          } else {
+            accumulator += `${currentValue}`
+          }
+
+          if (array.length - 1 === index) {
+            accumulator += ')'
+          } else {
+            accumulator += `, `
+          }
+
+          return accumulator
+        }, 'status in (')
+
+        core.fs.createAndStoreConfigFile({
+          projectId: jiraProject.id!,
+          projectKey: jiraProject.key!,
+          JQL: JQLString,
+        })
+
+        await sleep(500)
+
+        console.log(chalk.green.bold("\nYou're all setup to use cfy now :)\n"))
+
+        resolve()
+      } catch (error) {
+        reject(error)
+      }
+    })
   }
 }
 
