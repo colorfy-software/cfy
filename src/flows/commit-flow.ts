@@ -93,16 +93,20 @@ export const whatToDoWithSingleIssue = async (): Promise<{ next: number }> => {
           value: 2,
         },
         {
-          name: '3. Reassign ticket to another person',
+          name: '3. Update time spent on Issue',
           value: 3,
         },
         {
-          name: '4. Select another ticket',
+          name: '4. Reassign ticket to another person',
           value: 4,
         },
         {
-          name: '5. Exit',
+          name: '5. Select another ticket',
           value: 5,
+        },
+        {
+          name: '6. Exit',
+          value: 6,
         },
       ],
     },
@@ -169,6 +173,25 @@ export const addCommentToIssueInput = async (): Promise<{ comment: string }> => 
       type: 'input',
       name: 'comment',
       message: 'Comment to add to the issue',
+      validate(value) {
+        if (value.length === 0) {
+          return 'Sorry, you need to enter something here'
+        }
+
+        return true
+      },
+    },
+  ])
+
+  return output
+}
+
+export const amountOfTimeSpent = async (): Promise<{ time: string }> => {
+  const output = await prompt([
+    {
+      type: 'input',
+      name: 'time',
+      message: 'Add amount of time spent on the issue. (use format: #m || #h || #d. e.g. 4h for 4 hours)',
       validate(value) {
         if (value.length === 0) {
           return 'Sorry, you need to enter something here'

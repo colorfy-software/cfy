@@ -15,6 +15,7 @@ import sleep from '../utils/sleep'
 import { runCommand } from '../helpers/commands'
 import {
   addCommentToIssueInput,
+  amountOfTimeSpent,
   assignIssueTo,
   commitTypeQuestion,
   whatToDoWithSingleIssue,
@@ -97,9 +98,63 @@ export default class Create extends Command {
 
   async handleTicket(issue: SuggestedIssue | IssueBean, projectID: string): Promise<void> {
     const currentIssue = await core.jira.getIssueBasedOnIdOrKey(issue.key!)
-    const whatNext = await whatToDoWithSingleIssue()
 
-    if (whatNext.next === 1) {
+    this.log('\n')
+
+    const data = [
+      {
+        label: 'Add comment to the ticket',
+        value: 1,
+      },
+      {
+        label: 'Move ticket to another status',
+        value: 2,
+      },
+      {
+        label: 'Update time spent on Issue',
+        value: 3,
+      },
+      {
+        label: 'Reassign ticket to another person',
+        value: 4,
+      },
+      {
+        label: 'Select another ticket',
+        value: 5,
+      },
+      {
+        label: 'Exit',
+        value: 6,
+      },
+    ]
+
+    cli.table(data, {
+      commands: {
+        get: row => row.value,
+      },
+      action: {
+        get: row => row.label,
+      },
+    })
+
+    this.log('\n')
+
+    const output = await prompt([
+      {
+        type: 'input',
+        name: 'next',
+        message: 'Enter the command you wish to proceed with',
+        validate(value) {
+          if (value.length === 0) {
+            return 'Sorry, you need to enter something here'
+          }
+
+          return true
+        },
+      },
+    ])
+
+    if (parseInt(output.next, 10) === 1) {
       const ticketKey = currentIssue.key!
       const comment = (await addCommentToIssueInput()).comment
       console.log('\n')
@@ -109,18 +164,30 @@ export default class Create extends Command {
       console.log('\n')
 
       sleep(50)
-      this.handleTicketAfterCommit(currentIssue, projectID)
+      this.handleTicket(currentIssue, projectID)
     }
 
-    if (whatNext.next === 2) {
+    if (parseInt(output.next, 10) === 2) {
       // Move ticket to new column
       await core.jira.moveIssueToNewStatus(currentIssue.id!, projectID)
 
       sleep(50)
-      this.handleTicketAfterCommit(currentIssue, projectID)
+      this.handleTicket(currentIssue, projectID)
     }
 
-    if (whatNext.next === 3) {
+    if (parseInt(output.next, 10) === 3) {
+      const time = (await amountOfTimeSpent()).time
+      console.log('\n')
+      cli.action.start('Updating time spent')
+      await core.jira.updateTimeSpent(currentIssue.id!, time)
+      cli.action.stop(`Added ${time} to time spent`)
+      console.log('\n')
+
+      sleep(50)
+      this.handleTicket(currentIssue, projectID)
+    }
+
+    if (parseInt(output.next, 10) === 4) {
       console.log('\n')
       cli.action.start('Getting user list')
       const users = await core.jira.getAllUsers(projectID)
@@ -137,14 +204,14 @@ export default class Create extends Command {
       console.log('\n')
 
       sleep(50)
-      this.handleTicketAfterCommit(currentIssue, projectID)
+      this.handleTicket(currentIssue, projectID)
     }
 
-    if (whatNext.next === 4) {
+    if (parseInt(output.next, 10) === 5) {
       this.run()
     }
 
-    if (whatNext.next === 5) {
+    if (parseInt(output.next, 10) === 6) {
       this.log(chalk.green('\nAll done :)\n'))
     }
   }
@@ -163,23 +230,23 @@ export default class Create extends Command {
       const data = [
         {
           label: 'Show tickets from config statuses',
-          value: 0,
-        },
-        {
-          label: 'Show all tickets assigned to you',
           value: 1,
         },
         {
-          label: 'Show all tickets in the project',
+          label: 'Show all tickets assigned to you',
           value: 2,
         },
         {
-          label: 'Create a ticket',
+          label: 'Show all tickets in the project',
           value: 3,
         },
         {
-          label: 'Exit',
+          label: 'Create a ticket',
           value: 4,
+        },
+        {
+          label: 'Exit',
+          value: 5,
         },
       ]
 
@@ -199,7 +266,7 @@ export default class Create extends Command {
           type: 'input',
           name: 'actionValue',
           message: 'Enter the command you wish to proceed with',
-          default: 0,
+          default: 1,
           validate(value) {
             if (value.length === 0) {
               return 'Sorry, you need to enter something here'
@@ -210,7 +277,7 @@ export default class Create extends Command {
         },
       ])
 
-      if (parseInt(output.actionValue, 10) === 0) {
+      if (parseInt(output.actionValue, 10) === 1) {
         core.jira.configureClientFromConfigFile(authConfig)
         console.log('\n')
         cli.action.start('Fetching your Jira tickets from statuses in config')
@@ -224,7 +291,7 @@ export default class Create extends Command {
         this.handleTicket(issueBasedOnName, projectConfig.project_id)
       }
 
-      if (parseInt(output.actionValue, 10) === 1) {
+      if (parseInt(output.actionValue, 10) === 2) {
         core.jira.configureClientFromConfigFile(authConfig)
         console.log('\n')
         cli.action.start('Fetching all of your Jira tickets for the project')
@@ -238,7 +305,7 @@ export default class Create extends Command {
         this.handleTicket(issueBasedOnName, projectConfig.project_id)
       }
 
-      if (parseInt(output.actionValue, 10) === 2) {
+      if (parseInt(output.actionValue, 10) === 3) {
         core.jira.configureClientFromConfigFile(authConfig)
         console.log('\n')
         cli.action.start('Fetching all Jira tickets for project')
@@ -252,11 +319,11 @@ export default class Create extends Command {
         this.handleTicket(issueBasedOnName, projectConfig.project_id)
       }
 
-      if (parseInt(output.actionValue, 10) === 3) {
+      if (parseInt(output.actionValue, 10) === 4) {
         this.log(chalk.yellow('\nUnfortunately this is still work in progress. Should be in soon\n'))
       }
 
-      if (parseInt(output.actionValue, 10) === 4) {
+      if (parseInt(output.actionValue, 10) === 5) {
         this.log(chalk.green('\nAll done :)\n'))
       }
 

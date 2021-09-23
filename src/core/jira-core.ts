@@ -267,6 +267,25 @@ class Jira {
     })
   }
 
+  updateTimeSpent = (issueIdOrKey: string, time: string): Promise<void> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (this.client) {
+        try {
+          await this.client.issueWorklogs.addWorklog({ issueIdOrKey, timeSpent: time })
+          resolve()
+        } catch (error) {
+          console.log(error)
+        }
+      } else {
+        reject(new Error('No client provided'))
+      }
+    })
+  }
+
   moveIssueToNewStatus = (id: string, projectID: string): Promise<void> => {
     if (!this.client) {
       this.configureClientFromConfigFile()
