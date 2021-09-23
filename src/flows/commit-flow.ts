@@ -93,7 +93,7 @@ export const whatToDoWithSingleIssue = async (): Promise<{ next: number }> => {
           value: 2,
         },
         {
-          name: '3. Update time spent on Issue',
+          name: '3. Update time spent on Ticket',
           value: 3,
         },
         {
@@ -146,7 +146,7 @@ export const assignIssueTo = async (users: User[]): Promise<{ user: string }> =>
     {
       type: 'search-list',
       name: 'user',
-      message: 'Which status do you want to move the ticket to?',
+      message: 'Who do you want to assign the ticket to',
       choices: users.map(user => user.displayName),
     },
   ])
@@ -172,7 +172,7 @@ export const addCommentToIssueInput = async (): Promise<{ comment: string }> => 
     {
       type: 'input',
       name: 'comment',
-      message: 'Comment to add to the issue',
+      message: 'Comment to add to the ticket',
       validate(value) {
         if (value.length === 0) {
           return 'Sorry, you need to enter something here'
@@ -191,7 +191,7 @@ export const amountOfTimeSpent = async (): Promise<{ time: string }> => {
     {
       type: 'input',
       name: 'time',
-      message: 'Add amount of time spent on the issue. (use format: #m || #h || #d. e.g. 4h for 4 hours)',
+      message: 'Add amount of time spent on the ticket. (use format: #m || #h || #d. e.g. 4h for 4 hours)',
       validate(value) {
         if (value.length === 0) {
           return 'Sorry, you need to enter something here'

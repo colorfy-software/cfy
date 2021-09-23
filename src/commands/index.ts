@@ -68,9 +68,57 @@ export default class Create extends Command {
 
   async handleTicketAfterCommit(issue: SuggestedIssue | IssueBean, projectID: string): Promise<void> {
     const currentIssue = await core.jira.getIssueBasedOnIdOrKey(issue.key!)
-    const whatNext = await whatToDoWithSingleIssue()
 
-    if (whatNext.next === 1) {
+    const data = [
+      {
+        label: 'Add comment to the ticket',
+        value: 1,
+      },
+      {
+        label: 'Move ticket to another status',
+        value: 2,
+      },
+      {
+        label: 'Update time spent on the ticket',
+        value: 3,
+      },
+      {
+        label: 'Reassign ticket to another person',
+        value: 4,
+      },
+      {
+        label: 'Exit',
+        value: 5,
+      },
+    ]
+
+    cli.table(data, {
+      commands: {
+        get: row => row.value,
+      },
+      action: {
+        get: row => row.label,
+      },
+    })
+
+    this.log('\n')
+
+    const output = await prompt([
+      {
+        type: 'input',
+        name: 'next',
+        message: 'Enter the command you wish to proceed with',
+        validate(value) {
+          if (value.length === 0) {
+            return 'Sorry, you need to enter something here'
+          }
+
+          return true
+        },
+      },
+    ])
+
+    if (parseInt(output.next, 10) === 1) {
       const ticketKey = currentIssue.key!
       const comment = (await addCommentToIssueInput()).comment
       console.log('\n')
@@ -83,7 +131,7 @@ export default class Create extends Command {
       this.handleTicketAfterCommit(currentIssue, projectID)
     }
 
-    if (whatNext.next === 2) {
+    if (parseInt(output.next, 10) === 2) {
       // Move ticket to new column
       await core.jira.moveIssueToNewStatus(currentIssue.id!, projectID)
 
@@ -91,7 +139,39 @@ export default class Create extends Command {
       this.handleTicketAfterCommit(currentIssue, projectID)
     }
 
-    if (whatNext.next === 3) {
+    if (parseInt(output.next, 10) === 3) {
+      const time = (await amountOfTimeSpent()).time
+      console.log('\n')
+      cli.action.start('Updating time spent')
+      await core.jira.updateTimeSpent(currentIssue.id!, time)
+      cli.action.stop(`Added ${time} to time spent`)
+      console.log('\n')
+
+      sleep(50)
+      this.handleTicketAfterCommit(currentIssue, projectID)
+    }
+
+    if (parseInt(output.next, 10) === 4) {
+      console.log('\n')
+      cli.action.start('Getting user list')
+      const users = await core.jira.getAllUsers(projectID)
+      cli.action.stop()
+      console.log('\n')
+
+      const userToAssignTo = (await assignIssueTo(users)).user
+      const userIdToAssignTo = users.filter(u => u.displayName === userToAssignTo)[0].accountId
+
+      console.log('\n')
+      cli.action.start('Assigning ticket')
+      await core.jira.assignTicketToANewUser(currentIssue.id!, userIdToAssignTo!)
+      cli.action.stop(`Ticket has been assigned to ${userToAssignTo}`)
+      console.log('\n')
+
+      sleep(50)
+      this.handleTicketAfterCommit(currentIssue, projectID)
+    }
+
+    if (parseInt(output.next, 10) === 5) {
       this.log(chalk.green('\nAll done :)\n'))
     }
   }
@@ -111,7 +191,7 @@ export default class Create extends Command {
         value: 2,
       },
       {
-        label: 'Update time spent on Issue',
+        label: 'Update time spent on the ticket',
         value: 3,
       },
       {
