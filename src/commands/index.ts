@@ -13,13 +13,7 @@ import { SuggestedIssue } from 'jira.js/out/version2/models/suggestedIssue'
 import core from '../core/core'
 import sleep from '../utils/sleep'
 import { runCommand } from '../helpers/commands'
-import {
-  addCommentToIssueInput,
-  amountOfTimeSpent,
-  assignIssueTo,
-  commitTypeQuestion,
-  whatToDoWithSingleIssue,
-} from '../flows/commit-flow'
+import { addCommentToIssueInput, amountOfTimeSpent, assignIssueTo, commitTypeQuestion } from '../flows/commit-flow'
 import {
   initAuthSetupQuestion,
   ticketSelectionQuestion,
