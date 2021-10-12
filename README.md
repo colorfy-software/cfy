@@ -19,13 +19,14 @@ running command...
 $ cfy (-v|--version|version)
 @colorfy-software/cfy/0.0.18 darwin-x64 node-v14.17.6
 $ cfy --help [COMMAND]
-$ cfy --ticket | -t [To only take actions on tickets for specified project]
 USAGE
   $ cfy COMMAND
 ...
 ```
 
 <!-- usagestop -->
+
+# Template
 
 <!-- templating -->
 
