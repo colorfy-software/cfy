@@ -37,4 +37,6 @@ To use a specific style of commits you can use the templating function in `./cfy
 "template": "[%JIRA_TICKET_KEY%%WIP_FLAG%] - %COMMIT_TYPE% - %COMMIT_MESSAGE%"
 ```
 
+Output: "[JIRA-567 | WIP] - FEAT - Created a feature"
+
 <!-- templatingstop -->
