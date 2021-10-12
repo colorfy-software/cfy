@@ -22,7 +22,7 @@ $ cfy (-t | --ticket) [Take actions only on tickets without doing a commit]
 
 To use a specific style of commits you can use the templating function in `./cfy-config.json`. For example add this to the config file after you have run `cfy` and done initial project setup within a git project:
 
-```
+```json
 "wip_flag_template": " | WIP",
 "commit_type_case": "uppercase",
 "template": "[%JIRA_TICKET_KEY%%WIP_FLAG%] - %COMMIT_TYPE% - %COMMIT_MESSAGE%"
