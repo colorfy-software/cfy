@@ -60,10 +60,11 @@ const constructCommitMessage = (
   }
 
   const prefix = `[${ticketNumber}${wip ? ' | WIP' : ''}]`
-  type = `${commitType.toLowerCase()}`
-  const commitMessage = message.length > 0 ? `${message}` : ''
+  type = `- ${commitType.toUpperCase()}`
 
-  return `${prefix} ${type}: ${commitMessage}`
+  const commitMessage = message.length > 0 ? `- ${message}` : ''
+
+  return `${prefix} ${type} ${commitMessage}`
 }
 
 export default class Create extends Command {
