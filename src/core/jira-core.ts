@@ -411,6 +411,7 @@ class Jira {
         await sleep(500)
 
         console.log(chalk.green.bold("\nYou're all setup to use cfy now :)\n"))
+        console.log(`Commit message config is available at ${chalk.blue.bold(core.fs.getProjectConfigFilePath())}\n`)
 
         resolve()
       } catch (error) {

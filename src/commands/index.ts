@@ -1,3 +1,5 @@
+/* eslint-disable max-params */
+/* eslint-disable camelcase */
 /* eslint-disable complexity */
 /* eslint-disable no-implicit-coercion */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
@@ -22,15 +24,43 @@ import {
   initContinueToCommitting,
 } from '../flows/init-setup-flow'
 
-import { AuthConfigType } from '../types/types'
+import { AuthConfigType, ProjectConfigType } from '../types/types'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 inquirer.registerPrompt('search-list', require('inquirer-search-list'))
 
-const constructCommitMessage = (ticketNumber: string, commitType: string, wip: boolean, message: string) => {
-  const prefix = `[${ticketNumber}${wip ? ' | WIP' : ''}]`
-  const type = `${commitType.toLowerCase()}`
+const constructCommitMessage = (
+  ticketNumber: string,
+  commitType: string,
+  wip: boolean,
+  message: string,
+  config: ProjectConfigType,
+) => {
+  const { template, wip_flag_template, commit_type_case } = config
 
+  let type
+  if (template) {
+    switch (commit_type_case) {
+      case 'lowercase':
+        type = commitType.toLowerCase()
+        break
+      case 'uppercase':
+        type = commitType.toUpperCase()
+        break
+      default:
+        type = commitType.toLowerCase()
+    }
+
+    const wipTemplateString = wip ? wip_flag_template || ' | WIP' : ''
+    return template
+      .replace('%JIRA_TICKET_KEY%', ticketNumber)
+      .replace('%WIP_FLAG%', wipTemplateString)
+      .replace('%COMMIT_TYPE%', type)
+      .replace('%COMMIT_MESSAGE%', message)
+  }
+
+  const prefix = `[${ticketNumber}${wip ? ' | WIP' : ''}]`
+  type = `${commitType.toLowerCase()}`
   const commitMessage = message.length > 0 ? `${message}` : ''
 
   return `${prefix} ${type}: ${commitMessage}`
@@ -525,6 +555,7 @@ export default class Create extends Command {
             commitConfig.type,
             commitConfig.wip,
             commitConfig.message,
+            projectConfig,
           )
 
           const isUsingAnExistingTicket = Boolean(issueBasedOnName.key)
