@@ -35,11 +35,11 @@ inquirer.registerPrompt('search-list', require('inquirer-search-list'))
 
 const constructCommitMessage = (ticketNumber: string, commitType: string, wip: boolean, message: string) => {
   const prefix = `[${ticketNumber}${wip ? ' | WIP' : ''}]`
-  const type = `- ${commitType.toUpperCase()}`
+  const type = `${commitType.toLowerCase()}`
 
-  const commitMessage = message.length > 0 ? `- ${message}` : ''
+  const commitMessage = message.length > 0 ? `${message}` : ''
 
-  return `${prefix} ${type} ${commitMessage}`
+  return `${prefix} ${type}: ${commitMessage}`
 }
 
 export default class Create extends Command {
