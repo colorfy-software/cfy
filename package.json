@@ -1,7 +1,7 @@
 {
   "name": "@colorfy-software/cfy",
   "description": "Jira integrated commiting CLI",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "author": "Kristjan Vool <kristjanfou@gmail.com> (https://github.com/iremlopsum)",
   "bin": {
     "cfy": "./bin/run"
@@ -30,6 +30,7 @@
     "@types/node": "^10",
     "@typescript-eslint/eslint-plugin": "^4.19.0",
     "@typescript-eslint/parser": "^4.19.0",
+    "aws-sdk": "^2.996.0",
     "eslint": "^7.22.0",
     "eslint-config-oclif": "^3.1",
     "eslint-config-oclif-typescript": "^0.1",
@@ -64,6 +65,11 @@
   "oclif": {
     "commands": "./lib/commands",
     "bin": "cfy",
+    "update": {
+      "s3": {
+        "bucket": "colorfysoftwarecfy"
+      }
+    },
     "plugins": [
       "@oclif/plugin-help"
     ]
