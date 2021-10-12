@@ -10,7 +10,7 @@ $ cfy [In any git project]
 
 $ cfy (-v | --version)
 
-@colorfy-software/cfy/0.0.20 darwin-x64 node-v14.17.6
+@colorfy-software/cfy/0.0.21 darwin-x64 node-v14.17.6
 
 $ cfy --help [COMMAND]
 $ cfy (-t | --ticket) [Take actions only on tickets without doing a commit]
