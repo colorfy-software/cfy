@@ -2,35 +2,25 @@
 
 Jira integrated commiting CLI mainly to use at colorfy. After installing, just run `cfy` in any git project
 
-<!-- toc -->
-
-- [cfy](#cfy)
-- [Usage](#usage)
-<!-- tocstop -->
-
 # Usage
-
-<!-- usage -->
 
 ```sh-session
 $ npm install -g @colorfy-software/cfy
-$ cfy COMMAND
-running command...
-$ cfy (-v|--version|version)
-@colorfy-software/cfy/0.0.18 darwin-x64 node-v14.17.6
-$ cfy --help [COMMAND]
-USAGE
-  $ cfy COMMAND
-...
-```
+$ cfy [In any git project]
 
-<!-- usagestop -->
+$ cfy (-v | --version)
+
+@colorfy-software/cfy/0.0.19 darwin-x64 node-v14.17.6
+
+$ cfy --help [COMMAND]
+$ cfy (-t | --ticket) [Take actions only on tickets without doing a commit]
+```
 
 # Template
 
 <!-- templating -->
 
-To use a specific style of commits you can use the templating function in `./cfy-config.json`. Example:
+To use a specific style of commits you can use the templating function in `./cfy-config.json`. For example add this to the config file after you have run `cfy` and done initial project setup within a git project:
 
 ```
 "wip_flag_template": " | WIP",
