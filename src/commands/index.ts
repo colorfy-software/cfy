@@ -471,16 +471,21 @@ export default class Create extends Command {
 
         this.hasDoneAuthConfig = true
 
-        console.log(
+        this.log(
           `\nAuthentication is now setup. You can view and edit config file at: ${chalk.blue.bold(
             core.fs.getAuthConfigPath(),
           )}\n`,
         )
 
+        this.log('we wait before sleep')
+
         await sleep(500)
+
+        this.log('we done', properties.auth)
 
         // If we reach here without --auth flag then we re-run the whole command to reach the next step
         if (!properties.auth) {
+          this.log('we run')
           this.run()
         } else {
           return
@@ -488,8 +493,11 @@ export default class Create extends Command {
       }
     }
 
+    console.log('state', !!(!projectConfig && authConfig) || properties.config, this.hasDoneAuthConfig)
+
     // Setup connection to Jira project if not setup or triggered with -c (--config)
-    if ((!projectConfig && authConfig) || properties.config) {
+    if (!!(!projectConfig && authConfig) || properties.config) {
+      console.log('here at all?')
       // If there's no auth created to Jira we ask if users wants to do that instead
       // This mostly should happen if user calls cfy -c without setting up auth before
       if (!authConfig) {
@@ -499,7 +507,7 @@ export default class Create extends Command {
         if (shouldAuth) {
           this.run()
         }
-      } else if (!this.hasDoneAuthConfig) {
+      } else if (this.hasDoneAuthConfig) {
         if (!properties.config) {
           console.log(chalk.red("\nSeems like you don't have cfy set up for the current project\n"))
         }
@@ -516,6 +524,8 @@ export default class Create extends Command {
         }
       } else if (properties.config) {
         this.setupProjectWithCfy(authConfig)
+      } else {
+        console.log('else')
       }
     }
 
