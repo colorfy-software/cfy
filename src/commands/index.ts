@@ -136,7 +136,7 @@ export default class Create extends Command {
         name: 'next',
         message: 'Enter the command you wish to proceed with',
         validate(value) {
-          if (possibleValues.includes(parseInt(value, 10))) {
+          if (!possibleValues.includes(parseInt(value, 10))) {
             return 'Sorry, this command does not exist'
           }
 
@@ -254,7 +254,7 @@ export default class Create extends Command {
         name: 'next',
         message: 'Enter the command you wish to proceed with',
         validate(value) {
-          if (possibleValues.includes(parseInt(value, 10))) {
+          if (!possibleValues.includes(parseInt(value, 10))) {
             return 'Sorry, this command does not exist'
           }
 
@@ -368,6 +368,8 @@ export default class Create extends Command {
         },
       })
 
+      const possibleValues = data.map(d => d.value)
+
       this.log('\n')
 
       const output = await prompt([
@@ -377,8 +379,8 @@ export default class Create extends Command {
           message: 'Enter the command you wish to proceed with',
           default: 1,
           validate(value) {
-            if (value.length === 0) {
-              return 'Sorry, you need to enter something here'
+            if (!possibleValues.includes(parseInt(value, 10))) {
+              return 'Sorry, this command does not exist'
             }
 
             return true
