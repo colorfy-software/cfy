@@ -573,7 +573,7 @@ export default class Create extends Command {
             const commit = await runCommand(`git commit -m "${commitMessage}"`)
 
             if (commit) {
-              cli.action.stop('Created')
+              cli.action.stop()
             }
 
             this.log(chalk.green(`\n\nCommit successfully created\n`))
