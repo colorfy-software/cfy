@@ -516,6 +516,8 @@ export default class Create extends Command {
         }
       } else if (properties.config) {
         this.setupProjectWithCfy(authConfig)
+      } else {
+        this.setupProjectWithCfy(authConfig)
       }
     }
 
@@ -562,7 +564,10 @@ export default class Create extends Command {
           const isUsingAnExistingTicket = Boolean(issueBasedOnName.key)
 
           try {
+            this.log('\n')
+            cli.action.start('Running commit creation')
             const commit = await runCommand(`git commit -m "${commitMessage}"`)
+            cli.action.stop('Done')
 
             this.log(chalk.green(`\n\nCommit successfully created\n`))
             this.log(chalk.green(`\n${commit}\n`))

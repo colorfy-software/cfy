@@ -8,7 +8,7 @@ export const runCommand = (command: string): Promise<string> => {
       }
 
       if (stderr) {
-        reject(stderr)
+        resolve(stderr)
       }
 
       resolve(stdout)
