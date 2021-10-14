@@ -15,4 +15,3 @@ This is a list of todo's that should be implemented at some moment. As well a co
 ## Bugs
 
 - [ ] When `cfy` is setting up config with project, there is a weird if statement, that has a bunch of `else if`, but no else and can fail silently. Requires some looking into
-- [ ] After creating a commit with an issue, you need to select 5 to exit the menu. All menus should be exitable with just sending an empty value.

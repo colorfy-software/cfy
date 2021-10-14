@@ -128,14 +128,16 @@ export default class Create extends Command {
 
     this.log('\n')
 
+    const possibleValues = data.map(d => d.value)
+
     const output = await prompt([
       {
         type: 'input',
         name: 'next',
         message: 'Enter the command you wish to proceed with',
         validate(value) {
-          if (value.length === 0) {
-            return 'Sorry, you need to enter something here'
+          if (possibleValues.includes(parseInt(value, 10))) {
+            return 'Sorry, this command does not exist'
           }
 
           return true
@@ -244,14 +246,16 @@ export default class Create extends Command {
 
     this.log('\n')
 
+    const possibleValues = data.map(d => d.value)
+
     const output = await prompt([
       {
         type: 'input',
         name: 'next',
         message: 'Enter the command you wish to proceed with',
         validate(value) {
-          if (value.length === 0) {
-            return 'Sorry, you need to enter something here'
+          if (possibleValues.includes(parseInt(value, 10))) {
+            return 'Sorry, this command does not exist'
           }
 
           return true
