@@ -567,7 +567,10 @@ export default class Create extends Command {
             this.log('\n')
             cli.action.start('Running commit creation')
             const commit = await runCommand(`git commit -m "${commitMessage}"`)
-            cli.action.stop('Done')
+
+            if (commit) {
+              cli.action.stop('Created')
+            }
 
             this.log(chalk.green(`\n\nCommit successfully created\n`))
             this.log(chalk.green(`\n${commit}\n`))
@@ -579,6 +582,7 @@ export default class Create extends Command {
             }
           } catch (error) {
             this.log(`${chalk.red(error)}`)
+            cli.action.stop('Failed')
           }
         }
       } catch (error) {
