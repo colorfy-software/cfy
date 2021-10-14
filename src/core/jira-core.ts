@@ -138,7 +138,7 @@ class Jira {
         try {
           const issuesForProject = await this.client.issueSearch.getIssuePickerResource({
             currentProjectId: projectId,
-            currentJQL: ``,
+            currentJQL: `order by created DESC`,
           })
 
           resolve(issuesForProject)

@@ -149,7 +149,7 @@ export const ticketSelectionQuestion = async (
     (sections
       ? sections.issues?.map(issue => {
           return {
-            name: `${issue.key} - ${issue.summary}`,
+            name: `${issue.key} - ${issue.summaryText}`,
           }
         })
       : []) || []
