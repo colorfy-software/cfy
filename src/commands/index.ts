@@ -135,8 +135,8 @@ export default class Create extends Command {
         type: 'input',
         name: 'next',
         message: 'Enter the command you wish to proceed with',
-        validate(value) {
-          if (!possibleValues.includes(parseInt(value, 10))) {
+        validate(value: string) {
+          if (value.length > 0 && !possibleValues.includes(parseInt(value, 10))) {
             return 'Sorry, this command does not exist'
           }
 
@@ -253,8 +253,8 @@ export default class Create extends Command {
         type: 'input',
         name: 'next',
         message: 'Enter the command you wish to proceed with',
-        validate(value) {
-          if (!possibleValues.includes(parseInt(value, 10))) {
+        validate(value: string) {
+          if (value.length > 0 && !possibleValues.includes(parseInt(value, 10))) {
             return 'Sorry, this command does not exist'
           }
 
@@ -378,8 +378,8 @@ export default class Create extends Command {
           name: 'actionValue',
           message: 'Enter the command you wish to proceed with',
           default: 1,
-          validate(value) {
-            if (!possibleValues.includes(parseInt(value, 10))) {
+          validate(value: string) {
+            if (value.length > 0 && !possibleValues.includes(parseInt(value, 10))) {
               return 'Sorry, this command does not exist'
             }
 
@@ -528,7 +528,6 @@ export default class Create extends Command {
     }
 
     // Run the actual commit message logic
-
     if (authConfig && projectConfig && !properties.ticket && !properties.auth && !properties.config) {
       try {
         const stagedFiles = await runCommand('git diff --name-only --cached')

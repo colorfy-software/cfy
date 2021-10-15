@@ -11,6 +11,7 @@ This is a list of todo's that should be implemented at some moment. As well a co
 - [ ] Dry-run commit command - Just something that would output the commit message using the template to visually test if template is correct
 - [ ] Documentation - Currently written docs are pretty random. Some actual thought and examples should be put in. Maybe a gif or a video of the process
 - [ ] Quick action to open issue in browser after doing the commit or from `cfy -t`
+- [ ] Changelog generator
 
 ## Bugs
 
