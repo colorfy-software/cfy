@@ -3,7 +3,7 @@
 import cli from 'cli-ux'
 import chalk from 'chalk'
 import { Version2Client } from 'jira.js'
-import { IssueBean, IssuePickerSuggestions, Project, SuggestedIssue, User } from 'jira.js/out/version2/models'
+import { IssueBean, Project, SearchResults, User } from 'jira.js/out/version2/models'
 
 import core from './core'
 import { moveIssueToStatus } from '../flows/commit-flow'
@@ -78,7 +78,7 @@ class Jira {
     })
   }
 
-  getJQLTicketsForCurrentProject = async (projectId: string, JQL: string): Promise<IssuePickerSuggestions> => {
+  getJQLTicketsForCurrentProject = async (projectId: string, JQL: string): Promise<SearchResults> => {
     if (!this.client) {
       this.configureClientFromConfigFile()
     }
@@ -88,12 +88,11 @@ class Jira {
         try {
           const accountId = await this.getAccountID()
 
-          const issuesForProject = await this.client.issueSearch.getIssuePickerResource({
-            currentProjectId: projectId,
-            currentJQL: `assignee in (${accountId}) AND ${JQL}`,
+          const jql = await this.client.issueSearch.searchForIssuesUsingJql({
+            jql: `project = ${projectId} AND assignee in (${accountId}) AND ${JQL} order by created DESC `,
           })
 
-          resolve(issuesForProject)
+          resolve(jql)
         } catch (error) {
           reject(error)
         }
@@ -103,7 +102,7 @@ class Jira {
     })
   }
 
-  getAllTicketsAssignedToUserForCurrentProject = async (projectId: string): Promise<IssuePickerSuggestions> => {
+  getAllTicketsAssignedToUserForCurrentProject = async (projectId: string): Promise<SearchResults> => {
     if (!this.client) {
       this.configureClientFromConfigFile()
     }
@@ -113,12 +112,11 @@ class Jira {
         try {
           const accountId = await this.getAccountID()
 
-          const issuesForProject = await this.client.issueSearch.getIssuePickerResource({
-            currentProjectId: projectId,
-            currentJQL: `assignee in (${accountId})`,
+          const jql = await this.client.issueSearch.searchForIssuesUsingJql({
+            jql: `project = ${projectId} AND assignee in (${accountId}) order by created DESC`,
           })
 
-          resolve(issuesForProject)
+          resolve(jql)
         } catch (error) {
           reject(error)
         }
@@ -128,7 +126,7 @@ class Jira {
     })
   }
 
-  getAllTicketsForCurrentProject = async (projectId: string): Promise<IssuePickerSuggestions> => {
+  getAllTicketsForCurrentProject = async (projectId: string): Promise<SearchResults> => {
     if (!this.client) {
       this.configureClientFromConfigFile()
     }
@@ -136,12 +134,11 @@ class Jira {
     return new Promise(async (resolve, reject) => {
       if (this.client) {
         try {
-          const issuesForProject = await this.client.issueSearch.getIssuePickerResource({
-            currentProjectId: projectId,
-            currentJQL: `order by created DESC`,
+          const jql = await this.client.issueSearch.searchForIssuesUsingJql({
+            jql: `project = ${projectId} order by created DESC`,
           })
 
-          resolve(issuesForProject)
+          resolve(jql)
         } catch (error) {
           reject(error)
         }
@@ -347,12 +344,15 @@ class Jira {
     })
   }
 
-  getIssuesBasedOnName = (tickets: IssuePickerSuggestions, selectedTicket: { ticket: string }): SuggestedIssue => {
-    if (!tickets || !tickets.sections) {
+  getIssuesBasedOnName = (
+    tickets: SearchResults,
+    selectedTicket: { ticket: string },
+  ): IssueBean | Record<string, unknown> => {
+    if (!tickets || !tickets.issues) {
       return {}
     }
 
-    const currTicket = tickets.sections[0].issues?.filter(issue => {
+    const currTicket = tickets.issues?.filter(issue => {
       if (issue.key === selectedTicket.ticket.split(` -`)[0]) {
         return true
       }

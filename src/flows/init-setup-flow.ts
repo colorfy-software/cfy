@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import { prompt } from 'inquirer'
-import { IssuePickerSuggestions, Project } from 'jira.js/out/version2/models'
+import { Project, SearchResults } from 'jira.js/out/version2/models'
 
 import { validateEmail } from '../utils/validation'
 
@@ -140,19 +140,17 @@ export const getStatusesForProject = async (statuses: string[]): Promise<{ statu
 }
 
 export const ticketSelectionQuestion = async (
-  issues: IssuePickerSuggestions,
+  issues: SearchResults,
   projectKey: string,
   hideEmptyTicket?: boolean | undefined,
 ): Promise<{ ticket: string }> => {
-  const sections = issues.sections && issues.sections[0]
+  // const sections = issues.sections && issues.sections[0]
   const availableIssues =
-    (sections
-      ? sections.issues?.map(issue => {
-          return {
-            name: `${issue.key} - ${issue.summaryText}`,
-          }
-        })
-      : []) || []
+    issues.issues?.map(issue => {
+      return {
+        name: `${issue.key} - ${issue.fields.summary}`,
+      }
+    }) || []
 
   const choices = hideEmptyTicket
     ? availableIssues
@@ -171,6 +169,18 @@ export const ticketSelectionQuestion = async (
         ? 'Choose which ticket you want to take an action on'
         : 'Choose which ticket you want to connect the commit to',
       choices,
+    },
+  ])
+
+  return output
+}
+
+export const searchForTicketQuestion = async (): Promise<{ query: string }> => {
+  const output = await prompt([
+    {
+      type: 'input',
+      name: 'query',
+      message: 'Search query',
     },
   ])
 

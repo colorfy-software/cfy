@@ -556,6 +556,7 @@ export default class Create extends Command {
           const ticketToUse = await ticketSelectionQuestion(tickets, projectConfig.project_key)
           const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
           const ticketAnswer = ticketToUse.ticket
+
           const commitConfig = await commitTypeQuestion(ticketAnswer.split(' - ')[1])
 
           const commitMessage = constructCommitMessage(

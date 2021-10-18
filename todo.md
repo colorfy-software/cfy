@@ -16,3 +16,4 @@ This is a list of todo's that should be implemented at some moment. As well a co
 ## Bugs
 
 - [ ] When `cfy` is setting up config with project, there is a weird if statement, that has a bunch of `else if`, but no else and can fail silently. Requires some looking into
+- [ ] Currently there's no test done whether Jira auth info is accurate until trying to get tickets or projects. Should test the API immediately to know if something is wrong with provided auth
