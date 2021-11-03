@@ -17,8 +17,7 @@
     "find-git-root": "^1.0.4",
     "inquirer": "^8.1.1",
     "inquirer-search-list": "^1.2.6",
-    "jira.js": "^2.4.1",
-    "open": "^8.2.1",
+    "jira.js": "^2.7.0",
     "tslib": "^1"
   },
   "devDependencies": {
@@ -30,7 +29,6 @@
     "@types/node": "^10",
     "@typescript-eslint/eslint-plugin": "^4.19.0",
     "@typescript-eslint/parser": "^4.19.0",
-    "aws-sdk": "^2.996.0",
     "eslint": "^7.22.0",
     "eslint-config-oclif": "^3.1",
     "eslint-config-oclif-typescript": "^0.1",
@@ -65,11 +63,6 @@
   "oclif": {
     "commands": "./lib/commands",
     "bin": "cfy",
-    "update": {
-      "s3": {
-        "bucket": "colorfysoftwarecfy"
-      }
-    },
     "plugins": [
       "@oclif/plugin-help"
     ]

@@ -327,9 +327,12 @@ class Jira {
           console.log('\n')
           cli.action.start('Moving ticket')
           const transition = await this.client.issues.getTransitions({ issueIdOrKey: currentIssue.key! })
+
           await this.client.issues.doTransition({
             issueIdOrKey: currentIssue.key!,
-            transition: transition.transitions?.filter(trans => trans.name === newStatus.newStatus)[0],
+            transition: transition.transitions?.filter(
+              trans => (trans.to?.name || trans.name) === newStatus.newStatus,
+            )[0],
           })
           cli.action.stop()
           console.log('\n')
