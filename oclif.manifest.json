@@ -1,0 +1,33 @@
+{
+  "version": "0.0.31",
+  "commands": {
+    "": {
+      "id": "",
+      "description": "Create a new commit",
+      "pluginName": "@colorfy-software/cfy",
+      "pluginType": "core",
+      "aliases": [],
+      "flags": {
+        "ticket": {
+          "name": "ticket",
+          "type": "boolean",
+          "char": "t",
+          "allowNo": false
+        },
+        "auth": {
+          "name": "auth",
+          "type": "boolean",
+          "char": "a",
+          "allowNo": false
+        },
+        "config": {
+          "name": "config",
+          "type": "boolean",
+          "char": "c",
+          "allowNo": false
+        }
+      },
+      "args": []
+    }
+  }
+}

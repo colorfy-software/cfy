@@ -218,7 +218,7 @@ class Jira {
     return new Promise(async (resolve, reject) => {
       if (this.client) {
         const issueTypes = await this.client.projects.getAllStatuses({ projectIdOrKey: projectId })
-        const statuses = issueTypes.map(issueType => issueType.statuses.map(status => status.name!)).flat()
+        const statuses = issueTypes.flatMap(issueType => issueType.statuses.map(status => status.name!))
         resolve(uniq(statuses))
       } else {
         reject(new Error('No client provided'))
@@ -309,11 +309,11 @@ class Jira {
           console.log(`Current issue status is: ${chalk.green.bold(currentIssueStatusName)}`)
           console.log('\n')
 
-          issueTypes.forEach(issueType => {
+          for (const issueType of issueTypes) {
             if (issueType.id.toString() === currentIssueType.id?.toString()) {
               statuses = issueType.statuses
             }
-          })
+          }
 
           const availableNewStatuses = statuses
             .map(status => status.name!)
@@ -385,22 +385,14 @@ class Jira {
         console.log(chalk.yellow('\nNow we need to filter out correct tickets from all of the statuses\n'))
 
         const projectNameToUse = projectSettings.projectName
-        const jiraProject = jiraProjects.filter(project => `${project.key} - ${project.name}` === projectNameToUse)[0]
+        const jiraProject = jiraProjects.find(project => `${project.key} - ${project.name}` === projectNameToUse)
         const availableStatuses = await this.getAllStatusesForProject(jiraProject.id!)
         const selectedStatuses = await getStatusesForProject(availableStatuses)
 
         const JQLString = selectedStatuses.statusSelections.reduce((accumulator, currentValue, index, array) => {
-          if (currentValue.split(' ').length > 1) {
-            accumulator += `"${currentValue}"`
-          } else {
-            accumulator += `${currentValue}`
-          }
+          accumulator += currentValue.split(' ').length > 1 ? `"${currentValue}"` : `${currentValue}`
 
-          if (array.length - 1 === index) {
-            accumulator += ')'
-          } else {
-            accumulator += `, `
-          }
+          accumulator += array.length - 1 === index ? ')' : `, `
 
           return accumulator
         }, 'status in (')

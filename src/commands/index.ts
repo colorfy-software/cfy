@@ -26,7 +26,7 @@ import {
 
 import { AuthConfigType, ProjectConfigType } from '../types/types'
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-var-requires, unicorn/prefer-module
 inquirer.registerPrompt('search-list', require('inquirer-search-list'))
 
 const constructCommitMessage = (
@@ -128,7 +128,7 @@ export default class Create extends Command {
 
     this.log('\n')
 
-    const possibleValues = data.map(d => d.value)
+    const possibleValues = new Set(data.map(d => d.value))
 
     const output = await prompt([
       {
@@ -136,7 +136,7 @@ export default class Create extends Command {
         name: 'next',
         message: 'Enter the command you wish to proceed with',
         validate(value: string) {
-          if (value.length > 0 && !possibleValues.includes(parseInt(value, 10))) {
+          if (value.length > 0 && !possibleValues.has(Number.parseInt(value, 10))) {
             return 'Sorry, this command does not exist'
           }
 
@@ -145,7 +145,7 @@ export default class Create extends Command {
       },
     ])
 
-    if (parseInt(output.next, 10) === 1) {
+    if (Number.parseInt(output.next, 10) === 1) {
       const ticketKey = currentIssue.key!
       const comment = (await addCommentToIssueInput()).comment
       this.log('\n')
@@ -158,7 +158,7 @@ export default class Create extends Command {
       this.handleTicketAfterCommit(currentIssue, projectID)
     }
 
-    if (parseInt(output.next, 10) === 2) {
+    if (Number.parseInt(output.next, 10) === 2) {
       // Move ticket to new column
       await core.jira.moveIssueToNewStatus(currentIssue.id!, projectID)
 
@@ -166,7 +166,7 @@ export default class Create extends Command {
       this.handleTicketAfterCommit(currentIssue, projectID)
     }
 
-    if (parseInt(output.next, 10) === 3) {
+    if (Number.parseInt(output.next, 10) === 3) {
       const time = (await amountOfTimeSpent()).time
       this.log('\n')
       cli.action.start('Updating time spent')
@@ -178,7 +178,7 @@ export default class Create extends Command {
       this.handleTicketAfterCommit(currentIssue, projectID)
     }
 
-    if (parseInt(output.next, 10) === 4) {
+    if (Number.parseInt(output.next, 10) === 4) {
       this.log('\n')
       cli.action.start('Getting user list')
       const users = await core.jira.getAllUsers(projectID)
@@ -186,7 +186,7 @@ export default class Create extends Command {
       this.log('\n')
 
       const userToAssignTo = (await assignIssueTo(users)).user
-      const userIdToAssignTo = users.filter(u => u.displayName === userToAssignTo)[0].accountId
+      const userIdToAssignTo = users.find(u => u.displayName === userToAssignTo).accountId
 
       this.log('\n')
       cli.action.start('Assigning ticket')
@@ -198,7 +198,7 @@ export default class Create extends Command {
       this.handleTicketAfterCommit(currentIssue, projectID)
     }
 
-    if (parseInt(output.next, 10) === 5) {
+    if (Number.parseInt(output.next, 10) === 5) {
       this.log(chalk.green('\nAll done :)\n'))
     }
   }
@@ -246,7 +246,7 @@ export default class Create extends Command {
 
     this.log('\n')
 
-    const possibleValues = data.map(d => d.value)
+    const possibleValues = new Set(data.map(d => d.value))
 
     const output = await prompt([
       {
@@ -254,7 +254,7 @@ export default class Create extends Command {
         name: 'next',
         message: 'Enter the command you wish to proceed with',
         validate(value: string) {
-          if (value.length > 0 && !possibleValues.includes(parseInt(value, 10))) {
+          if (value.length > 0 && !possibleValues.has(Number.parseInt(value, 10))) {
             return 'Sorry, this command does not exist'
           }
 
@@ -263,7 +263,7 @@ export default class Create extends Command {
       },
     ])
 
-    if (parseInt(output.next, 10) === 1) {
+    if (Number.parseInt(output.next, 10) === 1) {
       const ticketKey = currentIssue.key!
       const comment = (await addCommentToIssueInput()).comment
       this.log('\n')
@@ -276,7 +276,7 @@ export default class Create extends Command {
       this.handleTicket(currentIssue, projectID)
     }
 
-    if (parseInt(output.next, 10) === 2) {
+    if (Number.parseInt(output.next, 10) === 2) {
       // Move ticket to new column
       await core.jira.moveIssueToNewStatus(currentIssue.id!, projectID)
 
@@ -284,7 +284,7 @@ export default class Create extends Command {
       this.handleTicket(currentIssue, projectID)
     }
 
-    if (parseInt(output.next, 10) === 3) {
+    if (Number.parseInt(output.next, 10) === 3) {
       const time = (await amountOfTimeSpent()).time
       this.log('\n')
       cli.action.start('Updating time spent')
@@ -296,7 +296,7 @@ export default class Create extends Command {
       this.handleTicket(currentIssue, projectID)
     }
 
-    if (parseInt(output.next, 10) === 4) {
+    if (Number.parseInt(output.next, 10) === 4) {
       this.log('\n')
       cli.action.start('Getting user list')
       const users = await core.jira.getAllUsers(projectID)
@@ -304,7 +304,7 @@ export default class Create extends Command {
       this.log('\n')
 
       const userToAssignTo = (await assignIssueTo(users)).user
-      const userIdToAssignTo = users.filter(u => u.displayName === userToAssignTo)[0].accountId
+      const userIdToAssignTo = users.find(u => u.displayName === userToAssignTo).accountId
 
       this.log('\n')
       cli.action.start('Assigning ticket')
@@ -316,11 +316,11 @@ export default class Create extends Command {
       this.handleTicket(currentIssue, projectID)
     }
 
-    if (parseInt(output.next, 10) === 5) {
+    if (Number.parseInt(output.next, 10) === 5) {
       this.run()
     }
 
-    if (parseInt(output.next, 10) === 6) {
+    if (Number.parseInt(output.next, 10) === 6) {
       this.log(chalk.green('\nAll done :)\n'))
     }
   }
@@ -368,7 +368,7 @@ export default class Create extends Command {
         },
       })
 
-      const possibleValues = data.map(d => d.value)
+      const possibleValues = new Set(data.map(d => d.value))
 
       this.log('\n')
 
@@ -379,7 +379,7 @@ export default class Create extends Command {
           message: 'Enter the command you wish to proceed with',
           default: 1,
           validate(value: string) {
-            if (value.length > 0 && !possibleValues.includes(parseInt(value, 10))) {
+            if (value.length > 0 && !possibleValues.has(Number.parseInt(value, 10))) {
               return 'Sorry, this command does not exist'
             }
 
@@ -388,7 +388,7 @@ export default class Create extends Command {
         },
       ])
 
-      if (parseInt(output.actionValue, 10) === 1) {
+      if (Number.parseInt(output.actionValue, 10) === 1) {
         core.jira.configureClientFromConfigFile(authConfig)
         this.log('\n')
         cli.action.start('Fetching your Jira tickets from statuses in config')
@@ -402,7 +402,7 @@ export default class Create extends Command {
         this.handleTicket(issueBasedOnName, projectConfig.project_id)
       }
 
-      if (parseInt(output.actionValue, 10) === 2) {
+      if (Number.parseInt(output.actionValue, 10) === 2) {
         core.jira.configureClientFromConfigFile(authConfig)
         this.log('\n')
         cli.action.start('Fetching all of your Jira tickets for the project')
@@ -416,7 +416,7 @@ export default class Create extends Command {
         this.handleTicket(issueBasedOnName, projectConfig.project_id)
       }
 
-      if (parseInt(output.actionValue, 10) === 3) {
+      if (Number.parseInt(output.actionValue, 10) === 3) {
         core.jira.configureClientFromConfigFile(authConfig)
         this.log('\n')
         cli.action.start('Fetching all Jira tickets for project')
@@ -430,11 +430,11 @@ export default class Create extends Command {
         this.handleTicket(issueBasedOnName, projectConfig.project_id)
       }
 
-      if (parseInt(output.actionValue, 10) === 4) {
+      if (Number.parseInt(output.actionValue, 10) === 4) {
         this.log(chalk.yellow('\nUnfortunately this is still work in progress. Should be in soon\n'))
       }
 
-      if (parseInt(output.actionValue, 10) === 5) {
+      if (Number.parseInt(output.actionValue, 10) === 5) {
         this.log(chalk.green('\nAll done :)\n'))
       }
 
@@ -518,6 +518,7 @@ export default class Create extends Command {
           if (properties.config) {
             this.log(chalk.red('\nYou are about to update your project configuration setup'))
           }
+
           this.setupProjectWithCfy(authConfig)
         }
       } else if (properties.config) {

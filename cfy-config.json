@@ -1,0 +1,1 @@
+{"project_id":"10000","project_key":"UP","JQL":"status in (\"To Do\", \"In Progress\", \"Ready for Development\")"}
