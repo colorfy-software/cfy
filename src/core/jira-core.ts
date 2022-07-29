@@ -1,4 +1,3 @@
-/* eslint-disable prefer-spread */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import cli from 'cli-ux'
 import chalk from 'chalk'
@@ -386,9 +385,10 @@ class Jira {
 
         const projectNameToUse = projectSettings.projectName
         const jiraProject = jiraProjects.find(project => `${project.key} - ${project.name}` === projectNameToUse)
-        const availableStatuses = await this.getAllStatusesForProject(jiraProject.id!)
+        const availableStatuses = await this.getAllStatusesForProject(jiraProject!.id!)
         const selectedStatuses = await getStatusesForProject(availableStatuses)
 
+        // eslint-disable-next-line unicorn/no-array-reduce
         const JQLString = selectedStatuses.statusSelections.reduce((accumulator, currentValue, index, array) => {
           accumulator += currentValue.split(' ').length > 1 ? `"${currentValue}"` : `${currentValue}`
 
@@ -398,8 +398,8 @@ class Jira {
         }, 'status in (')
 
         core.fs.createAndStoreConfigFile({
-          projectId: jiraProject.id!,
-          projectKey: jiraProject.key!,
+          projectId: jiraProject!.id!,
+          projectKey: jiraProject!.key!,
           JQL: JQLString,
         })
 

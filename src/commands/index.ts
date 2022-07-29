@@ -186,7 +186,7 @@ export default class Create extends Command {
       this.log('\n')
 
       const userToAssignTo = (await assignIssueTo(users)).user
-      const userIdToAssignTo = users.find(u => u.displayName === userToAssignTo).accountId
+      const userIdToAssignTo = users.find(u => u.displayName === userToAssignTo)?.accountId
 
       this.log('\n')
       cli.action.start('Assigning ticket')
@@ -304,7 +304,7 @@ export default class Create extends Command {
       this.log('\n')
 
       const userToAssignTo = (await assignIssueTo(users)).user
-      const userIdToAssignTo = users.find(u => u.displayName === userToAssignTo).accountId
+      const userIdToAssignTo = users.find(u => u.displayName === userToAssignTo)?.accountId
 
       this.log('\n')
       cli.action.start('Assigning ticket')
