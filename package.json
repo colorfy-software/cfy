@@ -1,7 +1,7 @@
 {
   "name": "@colorfy-software/cfy",
   "description": "Jira integrated commiting CLI",
-  "version": "0.0.32",
+  "version": "1.0.0",
   "author": "Kristjan Vool <kristjanfou@gmail.com> (https://github.com/iremlopsum)",
   "bin": {
     "cfy": "./bin/run"
