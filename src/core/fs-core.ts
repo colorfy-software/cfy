@@ -1,5 +1,7 @@
+// eslint-disable-next-line unicorn/prefer-node-protocol
 import os from 'os'
 import findGitRoot from 'find-git-root'
+// eslint-disable-next-line unicorn/prefer-node-protocol
 import { existsSync, readFileSync, writeFile } from 'fs'
 
 import { AuthConfigType, ProjectConfigType } from '../types/types'

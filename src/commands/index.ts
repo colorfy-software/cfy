@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-ternary */
 /* eslint-disable max-params */
 /* eslint-disable camelcase */
 /* eslint-disable complexity */
@@ -9,7 +10,7 @@ import chalk from 'chalk'
 import { prompt } from 'inquirer'
 import inquirer = require('inquirer')
 import { Command, flags } from '@oclif/command'
-import { IssueBean } from 'jira.js/out/version2/models'
+import { CreatedIssue, Issue, IssueBean } from 'jira.js/out/version2/models'
 import { SuggestedIssue } from 'jira.js/out/version2/models/suggestedIssue'
 
 import core from '../core/core'
@@ -25,6 +26,7 @@ import {
 } from '../flows/init-setup-flow'
 
 import { AuthConfigType, ProjectConfigType } from '../types/types'
+import open = require('open')
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, unicorn/prefer-module
 inquirer.registerPrompt('search-list', require('inquirer-search-list'))
@@ -91,7 +93,7 @@ export default class Create extends Command {
     }
   }
 
-  async handleTicketAfterCommit(issue: SuggestedIssue | IssueBean, projectID: string): Promise<void> {
+  async handleTicketAfterCommit(issue: Issue, projectID: string): Promise<void> {
     const currentIssue = await core.jira.getIssueBasedOnIdOrKey(issue.key!)
 
     const data = [
@@ -203,7 +205,7 @@ export default class Create extends Command {
     }
   }
 
-  async handleTicket(issue: SuggestedIssue | IssueBean, projectID: string): Promise<void> {
+  async handleTicket(issue: SuggestedIssue | IssueBean | CreatedIssue, projectID: string): Promise<void> {
     const currentIssue = await core.jira.getIssueBasedOnIdOrKey(issue.key!)
 
     this.log('\n')
@@ -226,12 +228,16 @@ export default class Create extends Command {
         value: 4,
       },
       {
-        label: 'Select another ticket',
+        label: 'Open ticket in browser',
         value: 5,
       },
       {
-        label: 'Exit',
+        label: 'Select another ticket',
         value: 6,
+      },
+      {
+        label: 'Exit',
+        value: 7,
       },
     ]
 
@@ -317,10 +323,26 @@ export default class Create extends Command {
     }
 
     if (Number.parseInt(output.next, 10) === 5) {
-      this.run()
+      this.log('\n')
+      cli.action.start('Opening ticket in browser')
+      const projectKey = core.fs.getAuthConfig()?.domain
+      // jira url based on issue
+      const url = `https://${projectKey}.atlassian.net/browse/${currentIssue.key}`
+      // open url in browser
+      open(url)
+
+      cli.action.stop()
+      this.log('\n')
+
+      sleep(50)
+      this.handleTicket(currentIssue, projectID)
     }
 
     if (Number.parseInt(output.next, 10) === 6) {
+      this.run()
+    }
+
+    if (Number.parseInt(output.next, 10) === 7) {
       this.log(chalk.green('\nAll done :)\n'))
     }
   }
@@ -431,7 +453,11 @@ export default class Create extends Command {
       }
 
       if (Number.parseInt(output.actionValue, 10) === 4) {
-        this.log(chalk.yellow('\nUnfortunately this is still work in progress. Should be in soon\n'))
+        const newIssue = await core.jira.createIssue(projectConfig.project_id)
+        this.log('\n')
+        this.log(chalk.green(`🎆🎇 New issue created: ${newIssue.key} 🎆🎇`))
+        this.log('\n')
+        this.handleTicket(newIssue, projectConfig.project_id)
       }
 
       if (Number.parseInt(output.actionValue, 10) === 5) {
@@ -555,7 +581,15 @@ export default class Create extends Command {
           this.log('\n')
 
           const ticketToUse = await ticketSelectionQuestion(tickets, projectConfig.project_key)
-          const issueBasedOnName = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
+
+          let issue
+
+          if (ticketToUse.ticket === 'Create new issue') {
+            issue = await core.jira.createIssue(projectConfig.project_id)
+          } else {
+            issue = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
+          }
+
           const ticketAnswer = ticketToUse.ticket
 
           const commitConfig = await commitTypeQuestion(ticketAnswer.split(' - ')[1])
@@ -568,7 +602,7 @@ export default class Create extends Command {
             projectConfig,
           )
 
-          const isUsingAnExistingTicket = Boolean(issueBasedOnName.key)
+          const isUsingAnExistingTicket = Boolean(issue.key)
 
           try {
             this.log('\n')
@@ -585,7 +619,7 @@ export default class Create extends Command {
             await sleep(50)
 
             if (isUsingAnExistingTicket) {
-              this.handleTicketAfterCommit(issueBasedOnName, projectConfig.project_id)
+              this.handleTicketAfterCommit(issue as Issue, projectConfig.project_id)
             }
           } catch (error) {
             this.log(`${chalk.red(error)}`)

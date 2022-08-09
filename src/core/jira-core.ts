@@ -2,13 +2,20 @@
 import cli from 'cli-ux'
 import chalk from 'chalk'
 import { Version2Client } from 'jira.js'
-import { IssueBean, Project, SearchResults, User } from 'jira.js/out/version2/models'
+import { CreatedIssue, IssueBean, Project, SearchResults, User } from 'jira.js/out/version2/models'
 
 import core from './core'
-import { moveIssueToStatus } from '../flows/commit-flow'
+import { assignIssueTo, moveIssueToStatus } from '../flows/commit-flow'
 
 import { AuthConfigType } from '../types/types'
-import { getStatusesForProject, projectSelectionQuestion } from '../flows/init-setup-flow'
+import {
+  chooseLabelForIssue,
+  chooseTypeForIssue,
+  getStatusesForProject,
+  issueDescription,
+  issueTitle,
+  projectSelectionQuestion,
+} from '../flows/init-setup-flow'
 import sleep from '../utils/sleep'
 
 function uniq(a: string[]): string[] {
@@ -225,6 +232,25 @@ class Jira {
     })
   }
 
+  getAllIssueTypesForProject = (projectId: string): Promise<string[]> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (this.client) {
+        const issueTypes = (await this.client.projects.getProject({ projectIdOrKey: projectId })).issueTypes!
+        resolve(
+          issueTypes
+            .map(issueType => `${issueType.name!} - ${issueType.description}`)
+            .filter(issueType => !issueType.startsWith('Subtask')),
+        )
+      } else {
+        reject(new Error('No client provided'))
+      }
+    })
+  }
+
   getAllUsers = (projectId: string): Promise<User[]> => {
     if (!this.client) {
       this.configureClientFromConfigFile()
@@ -410,6 +436,54 @@ class Jira {
 
         resolve()
       } catch (error) {
+        reject(error)
+      }
+    })
+  }
+
+  createIssue = (projectId: string): Promise<CreatedIssue> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        console.log('\n')
+        console.log('Creating a issue..')
+        console.log('\n')
+        const title = (await issueTitle()).title
+        const description = (await issueDescription()).description
+
+        // get all possible issue types for the project
+        const issueTypes = await this.getAllIssueTypesForProject(projectId)
+        const selectedIssueType = (await chooseTypeForIssue(issueTypes)).typeSelections.split(' ')[0]
+
+        const labels = await this.client?.labels.getAllLabels()
+        const selectedLabels = (await chooseLabelForIssue(labels!.values!)).labelSelections
+
+        const issue = await this.client?.issues.createIssue({
+          fields: {
+            project: {
+              id: projectId,
+            },
+            labels: [selectedLabels],
+            summary: title,
+            description,
+            issuetype: {
+              name: selectedIssueType,
+            },
+          },
+        })
+
+        const users = await this.getAllUsers(projectId)
+        const userToAssignTo = (await assignIssueTo(users)).user
+        const userIdToAssignTo = users.find(u => u.displayName === userToAssignTo)?.accountId
+        await this.assignTicketToANewUser(issue!.id!, userIdToAssignTo!)
+        await this.moveIssueToNewStatus(issue!.id!, projectId)
+
+        resolve(issue!)
+      } catch (error) {
+        console.log(error)
         reject(error)
       }
     })

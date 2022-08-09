@@ -1,3 +1,4 @@
+// eslint-disable-next-line unicorn/prefer-node-protocol
 import { exec } from 'child_process'
 
 export const runCommand = (command: string): Promise<string> => {

@@ -87,6 +87,7 @@ export const jiraAuthenticationQuestions = async (): Promise<{
         if (value.length === 0) {
           return 'Sorry, you need to enter something here'
         }
+
         return true
       },
     },
@@ -118,6 +119,7 @@ export const JQLQuestion = async (): Promise<{ JQL: string }> => {
         if (value.length === 0) {
           return 'Sorry, you need to enter something here'
         }
+
         return true
       },
     },
@@ -133,6 +135,32 @@ export const getStatusesForProject = async (statuses: string[]): Promise<{ statu
       name: 'statusSelections',
       message: 'Statuses for tickets',
       choices: statuses,
+    },
+  ])
+
+  return output
+}
+
+export const chooseTypeForIssue = async (types: string[]): Promise<{ typeSelections: string }> => {
+  const output = await prompt([
+    {
+      type: 'list',
+      name: 'typeSelections',
+      message: 'Choose type for issue',
+      choices: types,
+    },
+  ])
+
+  return output
+}
+
+export const chooseLabelForIssue = async (labels: string[]): Promise<{ labelSelections: string }> => {
+  const output = await prompt([
+    {
+      type: 'list',
+      name: 'labelSelections',
+      message: 'Choose label for issue',
+      choices: labels,
     },
   ])
 
@@ -156,7 +184,7 @@ export const ticketSelectionQuestion = async (
     ? availableIssues
     : [
         {
-          name: `${projectKey} - !! Move on without a ticket number !!`,
+          name: `Create new issue`,
         },
         ...availableIssues,
       ]
@@ -181,6 +209,30 @@ export const searchForTicketQuestion = async (): Promise<{ query: string }> => {
       type: 'input',
       name: 'query',
       message: 'Search query',
+    },
+  ])
+
+  return output
+}
+
+export const issueTitle = async (): Promise<{ title: string }> => {
+  const output = await prompt([
+    {
+      type: 'input',
+      name: 'title',
+      message: 'Title of the issue',
+    },
+  ])
+
+  return output
+}
+
+export const issueDescription = async (): Promise<{ description: string }> => {
+  const output = await prompt([
+    {
+      type: 'input',
+      name: 'description',
+      message: 'Description of the issue',
     },
   ])
 
