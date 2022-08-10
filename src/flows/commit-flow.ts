@@ -186,6 +186,25 @@ export const addCommentToIssueInput = async (): Promise<{ comment: string }> => 
   return output
 }
 
+export const amountOfTimeEstimated = async (): Promise<{ time: string }> => {
+  const output = await prompt([
+    {
+      type: 'input',
+      name: 'time',
+      message: 'Add original estimate. (use format: #m || #h || #d. e.g. 4h for 4 hours)',
+      validate(value) {
+        if (value.length === 0) {
+          return 'Sorry, you need to enter something here'
+        }
+
+        return true
+      },
+    },
+  ])
+
+  return output
+}
+
 export const amountOfTimeSpent = async (): Promise<{ time: string }> => {
   const output = await prompt([
     {

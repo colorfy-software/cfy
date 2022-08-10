@@ -5,7 +5,7 @@ import { Version2Client } from 'jira.js'
 import { CreatedIssue, IssueBean, Project, SearchResults, User } from 'jira.js/out/version2/models'
 
 import core from './core'
-import { assignIssueTo, moveIssueToStatus } from '../flows/commit-flow'
+import { amountOfTimeEstimated, amountOfTimeSpent, assignIssueTo, moveIssueToStatus } from '../flows/commit-flow'
 
 import { AuthConfigType } from '../types/types'
 import {
@@ -308,6 +308,25 @@ class Jira {
     })
   }
 
+  updateTimeAndEstimate = (issueIdOrKey: string, time: string, estimate: string): Promise<void> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (this.client) {
+        try {
+          await this.client.issueWorklogs.addWorklog({ issueIdOrKey, timeSpent: time, newEstimate: estimate })
+          resolve()
+        } catch (error) {
+          console.log(error)
+        }
+      } else {
+        reject(new Error('No client provided'))
+      }
+    })
+  }
+
   moveIssueToNewStatus = (id: string, projectID: string): Promise<void> => {
     if (!this.client) {
       this.configureClientFromConfigFile()
@@ -474,6 +493,12 @@ class Jira {
             },
           },
         })
+
+        const estimate = (await amountOfTimeEstimated()).time
+        const time = (await amountOfTimeSpent()).time
+        await this.updateTimeAndEstimate(issue!.id!, time, estimate)
+        console.log(`Added ${estimate} estimate and ${time} to time spent`)
+        console.log('\n')
 
         const users = await this.getAllUsers(projectId)
         const userToAssignTo = (await assignIssueTo(users)).user
