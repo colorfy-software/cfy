@@ -114,8 +114,12 @@ export default class Create extends Command {
         value: 4,
       },
       {
-        label: 'Exit',
+        label: 'Open ticket in a browser',
         value: 5,
+      },
+      {
+        label: 'Exit',
+        value: 6,
       },
     ]
 
@@ -201,6 +205,22 @@ export default class Create extends Command {
     }
 
     if (Number.parseInt(output.next, 10) === 5) {
+      this.log('\n')
+      cli.action.start('Opening ticket in browser')
+      const projectKey = core.fs.getAuthConfig()?.domain
+      // jira url based on issue
+      const url = `https://${projectKey}.atlassian.net/browse/${currentIssue.key}`
+      // open url in browser
+      open(url)
+
+      cli.action.stop()
+      this.log('\n')
+
+      sleep(50)
+      this.handleTicket(currentIssue, projectID)
+    }
+
+    if (Number.parseInt(output.next, 10) === 6) {
       this.log(chalk.green('\nAll done :)\n'))
     }
   }
@@ -586,16 +606,18 @@ export default class Create extends Command {
 
           if (ticketToUse.ticket === 'Create new issue') {
             issue = await core.jira.createIssue(projectConfig.project_id)
+            issue = await core.jira.getIssueBasedOnIdOrKey(issue.id)
           } else {
             issue = core.jira.getIssuesBasedOnName(tickets, ticketToUse)
           }
 
-          const ticketAnswer = ticketToUse.ticket
+          const issueKey = issue.key as string
+          const issueSummary = (issue as Issue).fields.summary
 
-          const commitConfig = await commitTypeQuestion(ticketAnswer.split(' - ')[1])
+          const commitConfig = await commitTypeQuestion(issueSummary)
 
           const commitMessage = constructCommitMessage(
-            ticketAnswer.split(' - ')[0],
+            issueKey,
             commitConfig.type,
             commitConfig.wip,
             commitConfig.message,

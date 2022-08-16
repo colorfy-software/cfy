@@ -160,7 +160,7 @@ export const chooseLabelForIssue = async (labels: string[]): Promise<{ labelSele
       type: 'list',
       name: 'labelSelections',
       message: 'Choose label for issue',
-      choices: labels,
+      choices: ['Skipping label for issue', ...labels],
     },
   ])
 

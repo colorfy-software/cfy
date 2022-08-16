@@ -192,13 +192,6 @@ export const amountOfTimeEstimated = async (): Promise<{ time: string }> => {
       type: 'input',
       name: 'time',
       message: 'Add original estimate. (use format: #m || #h || #d. e.g. 4h for 4 hours)',
-      validate(value) {
-        if (value.length === 0) {
-          return 'Sorry, you need to enter something here'
-        }
-
-        return true
-      },
     },
   ])
 
@@ -211,13 +204,6 @@ export const amountOfTimeSpent = async (): Promise<{ time: string }> => {
       type: 'input',
       name: 'time',
       message: 'Add amount of time spent on the ticket. (use format: #m || #h || #d. e.g. 4h for 4 hours)',
-      validate(value) {
-        if (value.length === 0) {
-          return 'Sorry, you need to enter something here'
-        }
-
-        return true
-      },
     },
   ])
 

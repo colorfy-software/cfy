@@ -315,11 +315,28 @@ class Jira {
 
     return new Promise(async (resolve, reject) => {
       if (this.client) {
-        try {
-          await this.client.issueWorklogs.addWorklog({ issueIdOrKey, timeSpent: time, newEstimate: estimate })
+        const body: {
+          timeSpent?: string
+          newEstimate?: string
+        } = {}
+
+        if (time !== '') {
+          body.timeSpent = time
+        }
+
+        if (estimate !== '') {
+          body.newEstimate = estimate
+        }
+
+        if (Object.keys(body).length > 0) {
+          try {
+            await this.client.issueWorklogs.addWorklog({ issueIdOrKey, ...body })
+            resolve()
+          } catch (error) {
+            console.log(error)
+          }
+        } else {
           resolve()
-        } catch (error) {
-          console.log(error)
         }
       } else {
         reject(new Error('No client provided'))
@@ -478,14 +495,15 @@ class Jira {
         const selectedIssueType = (await chooseTypeForIssue(issueTypes)).typeSelections.split(' ')[0]
 
         const labels = await this.client?.labels.getAllLabels()
-        const selectedLabels = (await chooseLabelForIssue(labels!.values!)).labelSelections
+        let selectedLabels = [(await chooseLabelForIssue(labels!.values!)).labelSelections]
+        selectedLabels = selectedLabels[0] === 'Skipping label for issue' ? [] : selectedLabels
 
         const issue = await this.client?.issues.createIssue({
           fields: {
             project: {
               id: projectId,
             },
-            labels: [selectedLabels],
+            labels: selectedLabels as unknown as string[],
             summary: title,
             description,
             issuetype: {
@@ -496,9 +514,19 @@ class Jira {
 
         const estimate = (await amountOfTimeEstimated()).time
         const time = (await amountOfTimeSpent()).time
+
         await this.updateTimeAndEstimate(issue!.id!, time, estimate)
-        console.log(`Added ${estimate} estimate and ${time} to time spent`)
-        console.log('\n')
+
+        if (time !== '' && estimate !== '') {
+          console.log(`Added ${estimate} estimate and ${time} to time spent`)
+          console.log('\n')
+        } else if (time !== '') {
+          console.log(`Added ${time} to time spent`)
+          console.log('\n')
+        } else if (estimate !== '') {
+          console.log(`Added ${estimate} to estimate`)
+          console.log('\n')
+        }
 
         const users = await this.getAllUsers(projectId)
         const userToAssignTo = (await assignIssueTo(users)).user
