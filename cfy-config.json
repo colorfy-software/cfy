@@ -1,1 +1,1 @@
-{"project_id":"10000","project_key":"UP","JQL":"status in (\"To Do\", \"In Progress\", \"Ready for Development\")"}
+{"project_id":"11393","project_key":"COLIB","JQL":"status in (Backlog, \"Selected for Development\", \"In Progress\")"}

@@ -2,13 +2,14 @@
 import cli from 'cli-ux'
 import chalk from 'chalk'
 import { Version2Client } from 'jira.js'
-import { CreatedIssue, IssueBean, Project, SearchResults, User } from 'jira.js/out/version2/models'
+import { Component, CreatedIssue, IssueBean, Project, SearchResults, User } from 'jira.js/out/version2/models'
 
 import core from './core'
 import { amountOfTimeEstimated, amountOfTimeSpent, assignIssueTo, moveIssueToStatus } from '../flows/commit-flow'
 
 import { AuthConfigType } from '../types/types'
 import {
+  chooseComponentForIssue,
   chooseLabelForIssue,
   chooseTypeForIssue,
   getStatusesForProject,
@@ -477,6 +478,25 @@ class Jira {
     })
   }
 
+  getComponentsForProject = (projectId: string): Promise<Component[]> => {
+    if (!this.client) {
+      this.configureClientFromConfigFile()
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (this.client) {
+        try {
+          const components = await this.client.projectComponents.getProjectComponents({ projectIdOrKey: projectId })
+          resolve(components)
+        } catch (error) {
+          reject(error)
+        }
+      } else {
+        reject(new Error('No client provided'))
+      }
+    })
+  }
+
   createIssue = (projectId: string): Promise<CreatedIssue> => {
     if (!this.client) {
       this.configureClientFromConfigFile()
@@ -484,6 +504,8 @@ class Jira {
 
     return new Promise(async (resolve, reject) => {
       try {
+        const components = await this.getComponentsForProject(projectId)
+
         console.log('\n')
         console.log('Creating a issue..')
         console.log('\n')
@@ -495,8 +517,24 @@ class Jira {
         const selectedIssueType = (await chooseTypeForIssue(issueTypes)).typeSelections.split(' ')[0]
 
         const labels = await this.client?.labels.getAllLabels()
-        let selectedLabels = [(await chooseLabelForIssue(labels!.values!)).labelSelections]
-        selectedLabels = selectedLabels[0] === 'Skipping label for issue' ? [] : selectedLabels
+
+        let selectedLabels: string[] = []
+
+        if (labels?.values?.length) {
+          selectedLabels = [(await chooseLabelForIssue(labels!.values!)).labelSelections]
+          selectedLabels = selectedLabels[0] === 'Skipping label for issue' ? [] : selectedLabels
+        }
+
+        let selectedComponent = ''
+
+        if (components.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          selectedComponent = (await chooseComponentForIssue(components.map(c => c.name))).componentSelections.split(
+            ' ',
+          )[0]
+          selectedComponent = selectedComponent === 'Skipping component for issue' ? '' : selectedComponent
+        }
 
         const issue = await this.client?.issues.createIssue({
           fields: {
@@ -506,6 +544,9 @@ class Jira {
             labels: selectedLabels as unknown as string[],
             summary: title,
             description,
+            components: selectedComponent
+              ? [{ id: components.find(component => component.name === selectedComponent)?.id }]
+              : [],
             issuetype: {
               name: selectedIssueType,
             },

@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/prefer-ternary */
 /* eslint-disable max-params */
 /* eslint-disable camelcase */
 /* eslint-disable complexity */
@@ -10,7 +9,7 @@ import chalk from 'chalk'
 import { prompt } from 'inquirer'
 import inquirer = require('inquirer')
 import { Command, flags } from '@oclif/command'
-import { CreatedIssue, Issue, IssueBean } from 'jira.js/out/version2/models'
+import { CreatedIssue, Issue } from 'jira.js/out/version2/models'
 import { SuggestedIssue } from 'jira.js/out/version2/models/suggestedIssue'
 
 import core from '../core/core'
@@ -225,7 +224,7 @@ export default class Create extends Command {
     }
   }
 
-  async handleTicket(issue: SuggestedIssue | IssueBean | CreatedIssue, projectID: string): Promise<void> {
+  async handleTicket(issue: SuggestedIssue | Issue | CreatedIssue, projectID: string): Promise<void> {
     const currentIssue = await core.jira.getIssueBasedOnIdOrKey(issue.key!)
 
     this.log('\n')

@@ -154,6 +154,19 @@ export const chooseTypeForIssue = async (types: string[]): Promise<{ typeSelecti
   return output
 }
 
+export const chooseComponentForIssue = async (components: string[]): Promise<{ componentSelections: string }> => {
+  const output = await prompt([
+    {
+      type: 'list',
+      name: 'componentSelections',
+      message: 'Choose component for issue',
+      choices: ['Skipping component for issue', ...components],
+    },
+  ])
+
+  return output
+}
+
 export const chooseLabelForIssue = async (labels: string[]): Promise<{ labelSelections: string }> => {
   const output = await prompt([
     {
